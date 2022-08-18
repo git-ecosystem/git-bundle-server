@@ -1,0 +1,12 @@
+{
+    "[markdown]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4,
+        "editor.wordWrap": "off",
+        "files.trimTrailingWhitespace": true,
+    },
+    "files.associations": {
+        "*.md": "markdown"
+    }
+}
