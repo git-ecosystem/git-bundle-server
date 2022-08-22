@@ -5,6 +5,16 @@ By running this software, you can self-host a bundle server to work with Git's
 
 [bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
 
+## Cloning and Building
+
+Be sure to clone inside the `src` directory of your `GOROOT`.
+
+Once there, you can build the `git-bundle-server` executable with
+
+```ShellSession
+$ go build git-bundle-server/cmd/git-bundle-server
+```
+
 ## Bundle Management through CLI
 
 The following command-line interface allows you to manage which repositories are
