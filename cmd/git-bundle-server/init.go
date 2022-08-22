@@ -3,10 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"git-bundle-server/internal/bundles"
+	"git-bundle-server/internal/core"
 	"git-bundle-server/internal/git"
-	"log"
-	"os"
-	"time"
 )
 
 type Init struct{}
@@ -24,28 +23,27 @@ func (Init) run(args []string) error {
 	url := args[0]
 	route := args[1]
 
-	repo := reporoot() + route
-	web := webroot() + route
-
-	mkdirErr := os.MkdirAll(web, os.ModePerm)
-	if mkdirErr != nil {
-		log.Fatal("Failed to create web directory: ", mkdirErr)
-	}
+	repo := core.GetRepository(route)
 
 	fmt.Printf("Cloning repository from %s\n", url)
-	gitErr := git.GitCommand("clone", "--mirror", url, repo)
+	gitErr := git.GitCommand("clone", "--mirror", url, repo.RepoDir)
 
 	if gitErr != nil {
-		return gitErr
+		return fmt.Errorf("failed to clone repository: %w", gitErr)
 	}
 
-	timestamp := time.Now().UTC().Unix()
-	bundleFile := web + "/bundle-" + fmt.Sprint(timestamp) + ".bundle"
-	fmt.Printf("Constructing base bundle file at %s\n", bundleFile)
+	bundle := bundles.CreateInitialBundle(repo)
+	fmt.Printf("Constructing base bundle file at %s\n", bundle.Filename)
 
-	gitErr = git.GitCommand("-C", repo, "bundle", "create", bundleFile, "--all")
+	gitErr = git.GitCommand("-C", repo.RepoDir, "bundle", "create", bundle.Filename, "--all")
 	if gitErr != nil {
-		return gitErr
+		return fmt.Errorf("failed to create bundle: %w", gitErr)
+	}
+
+	list := bundles.SingletonList(bundle)
+	listErr := bundles.WriteBundleList(list, repo)
+	if listErr != nil {
+		return fmt.Errorf("failed to write bundle list: %w", listErr)
 	}
 
 	return nil
