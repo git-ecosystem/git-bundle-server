@@ -35,9 +35,12 @@ func (Init) run(args []string) error {
 	bundle := bundles.CreateInitialBundle(repo)
 	fmt.Printf("Constructing base bundle file at %s\n", bundle.Filename)
 
-	gitErr = git.GitCommand("-C", repo.RepoDir, "bundle", "create", bundle.Filename, "--all")
+	written, gitErr := git.CreateBundle(repo, bundle)
 	if gitErr != nil {
 		return fmt.Errorf("failed to create bundle: %w", gitErr)
+	}
+	if !written {
+		return fmt.Errorf("refused to write empty bundle. Is the repo empty?")
 	}
 
 	list := bundles.SingletonList(bundle)

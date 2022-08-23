@@ -8,5 +8,6 @@ type Subcommand interface {
 func all() []Subcommand {
 	return []Subcommand{
 		Init{},
+		Update{},
 	}
 }
