@@ -40,7 +40,7 @@ func addBundleToList(bundle Bundle, list *BundleList) {
 	list.Bundles[bundle.CreationToken] = bundle
 }
 
-func CreateInitialBundle(repo core.Repository) Bundle {
+func CreateInitialBundle(repo *core.Repository) Bundle {
 	timestamp := time.Now().UTC().Unix()
 	bundleName := "bundle-" + fmt.Sprint(timestamp) + ".bundle"
 	bundleFile := repo.WebDir + "/" + bundleName
@@ -53,7 +53,7 @@ func CreateInitialBundle(repo core.Repository) Bundle {
 	return bundle
 }
 
-func CreateDistinctBundle(repo core.Repository, list *BundleList) Bundle {
+func CreateDistinctBundle(repo *core.Repository, list *BundleList) Bundle {
 	timestamp := time.Now().UTC().Unix()
 
 	keys := GetSortedCreationTokens(list)
@@ -83,7 +83,7 @@ func CreateSingletonList(bundle Bundle) *BundleList {
 }
 
 // Given a BundleList
-func WriteBundleList(list *BundleList, repo core.Repository) error {
+func WriteBundleList(list *BundleList, repo *core.Repository) error {
 	listFile := repo.WebDir + "/bundle-list"
 	jsonFile := repo.RepoDir + "/bundle-list.json"
 
@@ -144,7 +144,7 @@ func WriteBundleList(list *BundleList, repo core.Repository) error {
 	return os.Rename(listFile+".lock", listFile)
 }
 
-func GetBundleList(repo core.Repository) (*BundleList, error) {
+func GetBundleList(repo *core.Repository) (*BundleList, error) {
 	jsonFile := repo.RepoDir + "/bundle-list.json"
 
 	reader, err := os.Open(jsonFile)
@@ -248,7 +248,7 @@ func GetAllPrereqsForIncrementalBundle(list *BundleList) ([]string, error) {
 	return prereqs, nil
 }
 
-func CreateIncrementalBundle(repo core.Repository, list *BundleList) (*Bundle, error) {
+func CreateIncrementalBundle(repo *core.Repository, list *BundleList) (*Bundle, error) {
 	bundle := CreateDistinctBundle(repo, list)
 
 	lines, err := GetAllPrereqsForIncrementalBundle(list)
@@ -256,7 +256,7 @@ func CreateIncrementalBundle(repo core.Repository, list *BundleList) (*Bundle, e
 		return nil, err
 	}
 
-	written, err := git.CreateIncrementalBundle(repo, bundle.Filename, lines)
+	written, err := git.CreateIncrementalBundle(repo.RepoDir, bundle.Filename, lines)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create incremental bundle: %w", err)
 	}
@@ -268,7 +268,7 @@ func CreateIncrementalBundle(repo core.Repository, list *BundleList) (*Bundle, e
 	return &bundle, nil
 }
 
-func CollapseList(repo core.Repository, list *BundleList) error {
+func CollapseList(repo *core.Repository, list *BundleList) error {
 	maxBundles := 5
 
 	if len(list.Bundles) <= maxBundles {
@@ -318,7 +318,7 @@ func CollapseList(repo core.Repository, list *BundleList) error {
 		URI:           fmt.Sprintf("./base-%d.bundle", maxTimestamp),
 	}
 
-	err := git.CreateBundleFromRefs(repo, bundle.Filename, refs)
+	err := git.CreateBundleFromRefs(repo.RepoDir, bundle.Filename, refs)
 	if err != nil {
 		return err
 	}

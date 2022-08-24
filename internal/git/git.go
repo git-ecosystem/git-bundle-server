@@ -3,7 +3,6 @@ package git
 import (
 	"bytes"
 	"fmt"
-	"git-bundle-server/internal/core"
 	"os"
 	"os/exec"
 	"strings"
@@ -66,9 +65,9 @@ func GitCommandWithStdin(stdinLines []string, args ...string) error {
 	return err
 }
 
-func CreateBundle(repo core.Repository, filename string) (bool, error) {
+func CreateBundle(repoDir string, filename string) (bool, error) {
 	err := GitCommand(
-		"-C", repo.RepoDir, "bundle", "create",
+		"-C", repoDir, "bundle", "create",
 		filename, "--all")
 	if err != nil {
 		if strings.Contains(err.Error(), "Refusing to create empty bundle") {
@@ -80,11 +79,11 @@ func CreateBundle(repo core.Repository, filename string) (bool, error) {
 	return true, nil
 }
 
-func CreateBundleFromRefs(repo core.Repository, filename string, refs map[string]string) error {
+func CreateBundleFromRefs(repoDir string, filename string, refs map[string]string) error {
 	refNames := []string{}
 
 	for ref, oid := range refs {
-		err := GitCommand("-C", repo.RepoDir, "branch", "-f", ref, oid)
+		err := GitCommand("-C", repoDir, "branch", "-f", ref, oid)
 		if err != nil {
 			return fmt.Errorf("failed to create ref %s: %w", ref, err)
 		}
@@ -94,7 +93,7 @@ func CreateBundleFromRefs(repo core.Repository, filename string, refs map[string
 
 	err := GitCommandWithStdin(
 		refNames,
-		"-C", repo.RepoDir, "bundle", "create",
+		"-C", repoDir, "bundle", "create",
 		filename, "--stdin")
 	if err != nil {
 		return err
@@ -103,9 +102,9 @@ func CreateBundleFromRefs(repo core.Repository, filename string, refs map[string
 	return nil
 }
 
-func CreateIncrementalBundle(repo core.Repository, filename string, prereqs []string) (bool, error) {
+func CreateIncrementalBundle(repoDir string, filename string, prereqs []string) (bool, error) {
 	err := GitCommandWithStdin(
-		prereqs, "-C", repo.RepoDir, "bundle", "create",
+		prereqs, "-C", repoDir, "bundle", "create",
 		filename, "--stdin", "--all")
 	if err != nil {
 		if strings.Contains(err.Error(), "Refusing to create empty bundle") {

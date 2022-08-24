@@ -20,7 +20,10 @@ func (Update) run(args []string) error {
 	}
 
 	route := args[0]
-	repo := core.GetRepository(route)
+	repo, err := core.CreateRepository(route)
+	if err != nil {
+		return err
+	}
 
 	list, err := bundles.GetBundleList(repo)
 	if err != nil {
