@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"git-bundle-server/internal/core"
+	"git-bundle-server/internal/git"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -34,7 +36,7 @@ type BundleList struct {
 	Bundles map[int64]Bundle
 }
 
-func addBundleToList(bundle Bundle, list BundleList) {
+func addBundleToList(bundle Bundle, list *BundleList) {
 	list.Bundles[bundle.CreationToken] = bundle
 }
 
@@ -51,14 +53,14 @@ func CreateInitialBundle(repo core.Repository) Bundle {
 	return bundle
 }
 
-func CreateDistinctBundle(repo core.Repository, list BundleList) Bundle {
+func CreateDistinctBundle(repo core.Repository, list *BundleList) Bundle {
 	timestamp := time.Now().UTC().Unix()
 
-	_, c := list.Bundles[timestamp]
+	keys := GetSortedCreationTokens(list)
 
-	for c {
-		timestamp++
-		_, c = list.Bundles[timestamp]
+	maxTimestamp := keys[len(keys)-1]
+	if timestamp <= maxTimestamp {
+		timestamp = maxTimestamp + 1
 	}
 
 	bundleName := "bundle-" + fmt.Sprint(timestamp) + ".bundle"
@@ -72,16 +74,16 @@ func CreateDistinctBundle(repo core.Repository, list BundleList) Bundle {
 	return bundle
 }
 
-func SingletonList(bundle Bundle) BundleList {
+func CreateSingletonList(bundle Bundle) *BundleList {
 	list := BundleList{1, "all", make(map[int64]Bundle)}
 
-	addBundleToList(bundle, list)
+	addBundleToList(bundle, &list)
 
-	return list
+	return &list
 }
 
 // Given a BundleList
-func WriteBundleList(list BundleList, repo core.Repository) error {
+func WriteBundleList(list *BundleList, repo core.Repository) error {
 	listFile := repo.WebDir + "/bundle-list"
 	jsonFile := repo.RepoDir + "/bundle-list.json"
 
@@ -97,7 +99,10 @@ func WriteBundleList(list BundleList, repo core.Repository) error {
 		out, "[bundle]\n\tversion = %d\n\tmode = %s\n\n",
 		list.Version, list.Mode)
 
-	for token, bundle := range list.Bundles {
+	keys := GetSortedCreationTokens(list)
+
+	for _, token := range keys {
+		bundle := list.Bundles[token]
 		fmt.Fprintf(
 			out, "[bundle \"%d\"]\n\turi = %s\n\tcreationToken = %d\n\n",
 			token, bundle.URI, token)
@@ -226,7 +231,7 @@ func GetBundleHeader(bundle Bundle) (*BundleHeader, error) {
 	return &header, nil
 }
 
-func GetAllPrereqsForIncrementalBundle(list BundleList) ([]string, error) {
+func GetAllPrereqsForIncrementalBundle(list *BundleList) ([]string, error) {
 	prereqs := []string{}
 
 	for _, bundle := range list.Bundles {
@@ -241,4 +246,94 @@ func GetAllPrereqsForIncrementalBundle(list BundleList) ([]string, error) {
 	}
 
 	return prereqs, nil
+}
+
+func CreateIncrementalBundle(repo core.Repository, list *BundleList) (*Bundle, error) {
+	bundle := CreateDistinctBundle(repo, list)
+
+	lines, err := GetAllPrereqsForIncrementalBundle(list)
+	if err != nil {
+		return nil, err
+	}
+
+	written, err := git.CreateIncrementalBundle(repo, bundle.Filename, lines)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create incremental bundle: %w", err)
+	}
+
+	if !written {
+		return nil, nil
+	}
+
+	return &bundle, nil
+}
+
+func CollapseList(repo core.Repository, list *BundleList) error {
+	maxBundles := 5
+
+	if len(list.Bundles) <= maxBundles {
+		return nil
+	}
+
+	keys := GetSortedCreationTokens(list)
+
+	refs := make(map[string]string)
+
+	maxTimestamp := int64(0)
+
+	for i := range keys[0 : len(keys)-maxBundles+1] {
+		bundle := list.Bundles[keys[i]]
+
+		if bundle.CreationToken > maxTimestamp {
+			maxTimestamp = bundle.CreationToken
+		}
+
+		header, err := GetBundleHeader(bundle)
+		if err != nil {
+			return fmt.Errorf("failed to parse bundle file %s: %w", bundle.Filename, err)
+		}
+
+		// Ignore the old ref name and instead use the OID
+		// to generate the ref name. This allows us to create new
+		// refs that point to exactly these objects without disturbing
+		// refs/heads/ which is tracking the remote refs.
+		for _, oid := range header.Refs {
+			refs["refs/base/"+oid] = oid
+		}
+
+		delete(list.Bundles, keys[i])
+	}
+
+	// TODO: Use Git to determine which OIDs are "maximal" in the set
+	// and which are not implied by the previous ones.
+
+	// TODO: Use Git to determine which OIDs are required as prerequisites
+	// of the remaining bundles and latest ref tips, so we can "GC" the
+	// branches that were never merged and may have been force-pushed or
+	// deleted.
+
+	bundle := Bundle{
+		CreationToken: maxTimestamp,
+		Filename:      fmt.Sprintf("%s/base-%d.bundle", repo.WebDir, maxTimestamp),
+		URI:           fmt.Sprintf("./base-%d.bundle", maxTimestamp),
+	}
+
+	err := git.CreateBundleFromRefs(repo, bundle.Filename, refs)
+	if err != nil {
+		return err
+	}
+
+	list.Bundles[maxTimestamp] = bundle
+	return nil
+}
+
+func GetSortedCreationTokens(list *BundleList) []int64 {
+	keys := make([]int64, 0, len(list.Bundles))
+	for timestamp := range list.Bundles {
+		keys = append(keys, timestamp)
+	}
+
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+
+	return keys
 }

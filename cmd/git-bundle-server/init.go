@@ -35,7 +35,7 @@ func (Init) run(args []string) error {
 	bundle := bundles.CreateInitialBundle(repo)
 	fmt.Printf("Constructing base bundle file at %s\n", bundle.Filename)
 
-	written, gitErr := git.CreateBundle(repo, bundle)
+	written, gitErr := git.CreateBundle(repo, bundle.Filename)
 	if gitErr != nil {
 		return fmt.Errorf("failed to create bundle: %w", gitErr)
 	}
@@ -43,7 +43,7 @@ func (Init) run(args []string) error {
 		return fmt.Errorf("refused to write empty bundle. Is the repo empty?")
 	}
 
-	list := bundles.SingletonList(bundle)
+	list := bundles.CreateSingletonList(bundle)
 	listErr := bundles.WriteBundleList(list, repo)
 	if listErr != nil {
 		return fmt.Errorf("failed to write bundle list: %w", listErr)

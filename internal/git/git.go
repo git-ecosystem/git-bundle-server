@@ -3,7 +3,6 @@ package git
 import (
 	"bytes"
 	"fmt"
-	"git-bundle-server/internal/bundles"
 	"git-bundle-server/internal/core"
 	"os"
 	"os/exec"
@@ -67,10 +66,10 @@ func GitCommandWithStdin(stdinLines []string, args ...string) error {
 	return err
 }
 
-func CreateBundle(repo core.Repository, bundle bundles.Bundle) (bool, error) {
+func CreateBundle(repo core.Repository, filename string) (bool, error) {
 	err := GitCommand(
 		"-C", repo.RepoDir, "bundle", "create",
-		bundle.Filename, "--all")
+		filename, "--all")
 	if err != nil {
 		if strings.Contains(err.Error(), "Refusing to create empty bundle") {
 			return false, nil
@@ -81,19 +80,33 @@ func CreateBundle(repo core.Repository, bundle bundles.Bundle) (bool, error) {
 	return true, nil
 }
 
-func CreateIncrementalBundle(repo core.Repository, bundle bundles.Bundle, list bundles.BundleList) (bool, error) {
-	lines, err := bundles.GetAllPrereqsForIncrementalBundle(list)
+func CreateBundleFromRefs(repo core.Repository, filename string, refs map[string]string) error {
+	refNames := []string{}
+
+	for ref, oid := range refs {
+		err := GitCommand("-C", repo.RepoDir, "branch", "-f", ref, oid)
+		if err != nil {
+			return fmt.Errorf("failed to create ref %s: %w", ref, err)
+		}
+
+		refNames = append(refNames, ref)
+	}
+
+	err := GitCommandWithStdin(
+		refNames,
+		"-C", repo.RepoDir, "bundle", "create",
+		filename, "--stdin")
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	for _, line := range lines {
-		fmt.Printf("Sending prereq: %s\n", line)
-	}
+	return nil
+}
 
-	err = GitCommandWithStdin(
-		lines, "-C", repo.RepoDir, "bundle", "create",
-		bundle.Filename, "--stdin", "--all")
+func CreateIncrementalBundle(repo core.Repository, filename string, prereqs []string) (bool, error) {
+	err := GitCommandWithStdin(
+		prereqs, "-C", repo.RepoDir, "bundle", "create",
+		filename, "--stdin", "--all")
 	if err != nil {
 		if strings.Contains(err.Error(), "Refusing to create empty bundle") {
 			return false, nil
