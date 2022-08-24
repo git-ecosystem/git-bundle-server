@@ -9,5 +9,6 @@ func all() []Subcommand {
 	return []Subcommand{
 		Init{},
 		Update{},
+		UpdateAll{},
 	}
 }
