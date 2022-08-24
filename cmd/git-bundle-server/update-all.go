@@ -24,8 +24,12 @@ func (UpdateAll) run(args []string) error {
 		return err
 	}
 
+	subargs := []string{"update", ""}
+	subargs = append(subargs, args...)
+
 	for route := range repos {
-		cmd := exec.Command(exe, "update", route)
+		subargs[1] = route
+		cmd := exec.Command(exe, subargs...)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 
