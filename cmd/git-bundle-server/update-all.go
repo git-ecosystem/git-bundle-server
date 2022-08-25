@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"git-bundle-server/internal/core"
 	"os"
 	"os/exec"
+
+	"github.com/github/git-bundle-server/internal/core"
 )
 
 type UpdateAll struct{}
