@@ -19,3 +19,7 @@ func webroot() string {
 func reporoot() string {
 	return bundleroot() + "git/"
 }
+
+func CrontabFile() string {
+	return bundleroot() + "cron-schedule"
+}
