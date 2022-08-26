@@ -49,6 +49,22 @@ func CreateRepository(route string) (*Repository, error) {
 	return &repo, nil
 }
 
+func RemoveRoute(route string) error {
+	repos, err := GetRepositories()
+	if err != nil {
+		return fmt.Errorf("failed to parse routes file")
+	}
+
+	_, contains := repos[route]
+	if !contains {
+		return fmt.Errorf("route '%s' is not registered", route)
+	}
+
+	delete(repos, route)
+
+	return WriteRouteFile(repos)
+}
+
 func WriteRouteFile(repos map[string]Repository) error {
 	dir := bundleroot()
 	routefile := dir + "/routes"
@@ -59,7 +75,7 @@ func WriteRouteFile(repos map[string]Repository) error {
 		contents = contents + routes + "\n"
 	}
 
-	return os.WriteFile(routefile, []byte(contents), 0600)
+	return os.WriteFile(routefile, []byte(contents), 0o600)
 }
 
 func GetRepositories() (map[string]Repository, error) {
@@ -68,7 +84,7 @@ func GetRepositories() (map[string]Repository, error) {
 	dir := bundleroot()
 	routefile := dir + "/routes"
 
-	file, err := os.OpenFile(routefile, os.O_RDONLY|os.O_CREATE, 0600)
+	file, err := os.OpenFile(routefile, os.O_RDONLY|os.O_CREATE, 0o600)
 	if err != nil {
 		// Assume that the file doesn't exist?
 		return repos, nil
