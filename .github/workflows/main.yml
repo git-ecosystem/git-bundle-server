@@ -20,10 +20,12 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/src/git-bundle-server
           GOPATH="$GITHUB_WORKSPACE/../../" go build ./cmd/git-bundle-server
+          GOPATH="$GITHUB_WORKSPACE/../../" go build ./cmd/git-bundle-web-server
 
       - name: Check style
         run: |
           cd $GITHUB_WORKSPACE/src/git-bundle-server
           GOPATH="$GITHUB_WORKSPACE/../../" go vet ./cmd/git-bundle-server
+          GOPATH="$GITHUB_WORKSPACE/../../" go vet ./cmd/git-bundle-web-server
 
       # TODO: add automated tests.

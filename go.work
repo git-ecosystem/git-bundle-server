@@ -2,6 +2,7 @@ go 1.18
 
 use (
 	./cmd/git-bundle-server/
+	./cmd/git-bundle-web-server/
 	./internal/bundles/
 	./internal/core/
 	./internal/git/
