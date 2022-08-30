@@ -86,7 +86,7 @@ func WriteBundleList(list BundleList, repo core.Repository) error {
 	jsonFile := repo.RepoDir + "/bundle-list.json"
 
 	// TODO: Formalize lockfile concept.
-	f, err := os.OpenFile(listFile+".lock", os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.OpenFile(listFile+".lock", os.O_WRONLY|os.O_CREATE, 0o600)
 	if err != nil {
 		return fmt.Errorf("failure to open file: %w", err)
 	}
@@ -109,7 +109,7 @@ func WriteBundleList(list BundleList, repo core.Repository) error {
 		return fmt.Errorf("failed to close lock file: %w", err)
 	}
 
-	f, err = os.OpenFile(jsonFile+".lock", os.O_WRONLY|os.O_CREATE, 0600)
+	f, err = os.OpenFile(jsonFile+".lock", os.O_WRONLY|os.O_CREATE, 0o600)
 	if err != nil {
 		return fmt.Errorf("failed to open JSON file: %w", err)
 	}
@@ -182,8 +182,8 @@ func GetBundleHeader(bundle Bundle) (*BundleHeader, error) {
 
 		if line[0] == '#' &&
 			strings.HasPrefix(line, "# v") &&
-			strings.HasSuffix(line, " git bundle\n") {
-			header.Version, err = strconv.ParseInt(line[3:len(line)-len(" git bundle\n")], 10, 64)
+			strings.HasSuffix(line, " git bundle") {
+			header.Version, err = strconv.ParseInt(line[3:len(line)-len(" git bundle")], 10, 64)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse bundle version: %s", err)
 			}
