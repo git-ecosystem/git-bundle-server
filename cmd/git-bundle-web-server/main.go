@@ -42,7 +42,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 
 	owner, repo, file, err := parseRoute(path)
 	if err != nil {
-		// TODO: report a failure to the user somehow. 404?
+		w.WriteHeader(http.StatusNotFound)
 		fmt.Printf("Failed to parse route: %s\n", err)
 		return
 	}
@@ -51,14 +51,14 @@ func serve(w http.ResponseWriter, r *http.Request) {
 
 	repos, err := core.GetRepositories()
 	if err != nil {
-		// TODO: report a 500
+		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Printf("Failed to load routes\n")
 		return
 	}
 
 	repository, contains := repos[route]
 	if !contains {
-		// TODO: report a 404
+		w.WriteHeader(http.StatusNotFound)
 		fmt.Printf("Failed to get route out of repos\n")
 		return
 	}
@@ -70,7 +70,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	fileToServe := repository.WebDir + "/" + file
 	data, err := os.ReadFile(fileToServe)
 	if err != nil {
-		// TODO: return a 404
+		w.WriteHeader(http.StatusNotFound)
 		fmt.Printf("Failed to read file\n")
 		return
 	}
