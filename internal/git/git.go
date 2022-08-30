@@ -75,7 +75,7 @@ func GitCommandWithStdin(stdinLines []string, args ...string) error {
 func CreateBundle(repoDir string, filename string) (bool, error) {
 	err := GitCommand(
 		"-C", repoDir, "bundle", "create",
-		filename, "--all")
+		filename, "--branches")
 	if err != nil {
 		if strings.Contains(err.Error(), "Refusing to create empty bundle") {
 			return false, nil
@@ -112,7 +112,7 @@ func CreateBundleFromRefs(repoDir string, filename string, refs map[string]strin
 func CreateIncrementalBundle(repoDir string, filename string, prereqs []string) (bool, error) {
 	err := GitCommandWithStdin(
 		prereqs, "-C", repoDir, "bundle", "create",
-		filename, "--stdin", "--all")
+		filename, "--stdin", "--branches")
 	if err != nil {
 		if strings.Contains(err.Error(), "Refusing to create empty bundle") {
 			return false, nil

@@ -29,10 +29,20 @@ func (Init) run(args []string) error {
 	}
 
 	fmt.Printf("Cloning repository from %s\n", url)
-	gitErr := git.GitCommand("clone", "--mirror", url, repo.RepoDir)
+	gitErr := git.GitCommand("clone", "--bare", url, repo.RepoDir)
 
 	if gitErr != nil {
 		return fmt.Errorf("failed to clone repository: %w", gitErr)
+	}
+
+	gitErr = git.GitCommand("-C", repo.RepoDir, "config", "remote.origin.fetch", "+refs/heads/*:refs/heads/*")
+	if gitErr != nil {
+		return fmt.Errorf("failed to configure refspec: %w", gitErr)
+	}
+
+	gitErr = git.GitCommand("-C", repo.RepoDir, "fetch", "origin")
+	if gitErr != nil {
+		return fmt.Errorf("failed to fetch latest refs: %w", gitErr)
 	}
 
 	bundle := bundles.CreateInitialBundle(repo)
