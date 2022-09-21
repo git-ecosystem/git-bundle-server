@@ -7,7 +7,10 @@ type Subcommand interface {
 
 func all() []Subcommand {
 	return []Subcommand{
+		Delete{},
 		Init{},
+		Start{},
+		Stop{},
 		Update{},
 		UpdateAll{},
 	}

@@ -63,5 +63,7 @@ func (Init) run(args []string) error {
 		return fmt.Errorf("failed to write bundle list: %w", listErr)
 	}
 
+	SetCronSchedule()
+
 	return nil
 }
