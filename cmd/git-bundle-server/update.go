@@ -3,8 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"git-bundle-server/internal/bundles"
-	"git-bundle-server/internal/core"
+
+	"github.com/github/git-bundle-server/internal/bundles"
+	"github.com/github/git-bundle-server/internal/core"
 )
 
 type Update struct{}

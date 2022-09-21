@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"git-bundle-server/internal/core"
-	"git-bundle-server/internal/git"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/github/git-bundle-server/internal/core"
+	"github.com/github/git-bundle-server/internal/git"
 )
 
 type BundleHeader struct {
