@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"git-bundle-server/internal/bundles"
 	"git-bundle-server/internal/core"
-	"git-bundle-server/internal/git"
 )
 
 type Update struct{}
@@ -21,31 +20,37 @@ func (Update) run(args []string) error {
 	}
 
 	route := args[0]
-	repo := core.GetRepository(route)
+	repo, err := core.CreateRepository(route)
+	if err != nil {
+		return err
+	}
 
 	list, err := bundles.GetBundleList(repo)
 	if err != nil {
 		return fmt.Errorf("failed to load bundle list: %w", err)
 	}
 
-	bundle := bundles.CreateDistinctBundle(repo, *list)
-
-	fmt.Printf("Constructing incremental bundle file at %s\n", bundle.Filename)
-
-	written, err := git.CreateIncrementalBundle(repo, bundle, *list)
+	fmt.Printf("Creating new incremental bundle\n")
+	bundle, err := bundles.CreateIncrementalBundle(repo, list)
 	if err != nil {
-		return fmt.Errorf("failed to create incremental bundle: %w", err)
+		return err
 	}
 
-	// Nothing to update
-	if !written {
+	// Nothing new!
+	if bundle == nil {
 		return nil
 	}
 
-	list.Bundles[bundle.CreationToken] = bundle
+	list.Bundles[bundle.CreationToken] = *bundle
+
+	fmt.Printf("Collapsing bundle list\n")
+	err = bundles.CollapseList(repo, list)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Writing updated bundle list\n")
-	listErr := bundles.WriteBundleList(*list, repo)
+	listErr := bundles.WriteBundleList(list, repo)
 	if listErr != nil {
 		return fmt.Errorf("failed to write bundle list: %w", listErr)
 	}

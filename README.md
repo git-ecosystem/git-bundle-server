@@ -27,7 +27,7 @@ being managed by the bundle server.
   `https://github.com/git-for-windows/git` is assigned the route
   `/git-for-windows/git`. Run `git-bundle-server update` to initialize bundle
   information. Configure the web server to recognize this repository at that
-  route. Configure scheduler to run `git-bundle-server update --all` as
+  route. Configure scheduler to run `git-bundle-server update-all` as
   necessary.
 
 * `git-bundle-server update [--daily|--hourly] <route>`: For the

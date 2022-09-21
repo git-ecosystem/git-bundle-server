@@ -23,7 +23,10 @@ func (Init) run(args []string) error {
 	url := args[0]
 	route := args[1]
 
-	repo := core.GetRepository(route)
+	repo, err := core.CreateRepository(route)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Cloning repository from %s\n", url)
 	gitErr := git.GitCommand("clone", "--mirror", url, repo.RepoDir)
@@ -35,7 +38,7 @@ func (Init) run(args []string) error {
 	bundle := bundles.CreateInitialBundle(repo)
 	fmt.Printf("Constructing base bundle file at %s\n", bundle.Filename)
 
-	written, gitErr := git.CreateBundle(repo, bundle)
+	written, gitErr := git.CreateBundle(repo.RepoDir, bundle.Filename)
 	if gitErr != nil {
 		return fmt.Errorf("failed to create bundle: %w", gitErr)
 	}
@@ -43,7 +46,7 @@ func (Init) run(args []string) error {
 		return fmt.Errorf("refused to write empty bundle. Is the repo empty?")
 	}
 
-	list := bundles.SingletonList(bundle)
+	list := bundles.CreateSingletonList(bundle)
 	listErr := bundles.WriteBundleList(list, repo)
 	if listErr != nil {
 		return fmt.Errorf("failed to write bundle list: %w", listErr)
