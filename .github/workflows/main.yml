@@ -28,4 +28,7 @@ jobs:
           cd $GITHUB_WORKSPACE/src/git-bundle-server
           go vet ./...
 
-      # TODO: add automated tests.
+      - name: Run unit tests
+        run:  |
+          cd $GITHUB_WORKSPACE/src/git-bundle-server
+          go test -v ./...
