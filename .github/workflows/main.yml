@@ -16,16 +16,18 @@ jobs:
         with:
           path: src/git-bundle-server
 
+      # TODO: when the '-C' option is available, remove the 'cd ...'
+      # See https://github.com/golang/go/issues/50332 for more details
       - name: Build
         run: |
           cd $GITHUB_WORKSPACE/src/git-bundle-server
-          GOPATH="$GITHUB_WORKSPACE/../../" go build ./cmd/git-bundle-server
-          GOPATH="$GITHUB_WORKSPACE/../../" go build ./cmd/git-bundle-web-server
+          go build ./cmd/git-bundle-server
+          go build ./cmd/git-bundle-web-server
 
       - name: Check style
         run: |
           cd $GITHUB_WORKSPACE/src/git-bundle-server
-          GOPATH="$GITHUB_WORKSPACE/../../" go vet ./cmd/git-bundle-server
-          GOPATH="$GITHUB_WORKSPACE/../../" go vet ./cmd/git-bundle-web-server
+          go vet ./cmd/git-bundle-server
+          go vet ./cmd/git-bundle-web-server
 
       # TODO: add automated tests.
