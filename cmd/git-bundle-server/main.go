@@ -21,17 +21,15 @@ func all() []argparse.Subcommand {
 func main() {
 	cmds := all()
 
-	if len(os.Args) < 2 {
-		log.Fatal("usage: git-bundle-server <command> [<options>]\n")
-		return
+	parser := argparse.NewArgParser("git-bundle-server <command> [<options>]")
+	parser.SetIsTopLevel(true)
+	for _, cmd := range cmds {
+		parser.Subcommand(cmd)
 	}
+	parser.Parse(os.Args[1:])
 
-	for i := 0; i < len(cmds); i++ {
-		if cmds[i].Name() == os.Args[1] {
-			err := cmds[i].Run(os.Args[2:])
-			if err != nil {
-				log.Fatal("Failed with error: ", err)
-			}
-		}
+	err := parser.InvokeSubcommand()
+	if err != nil {
+		log.Fatal("Failed with error: ", err)
 	}
 }
