@@ -9,10 +9,11 @@ By running this software, you can self-host a bundle server to work with Git's
 
 Be sure to clone inside the `src` directory of your `GOROOT`.
 
-Once there, you can build the `git-bundle-server` executable with
+Once there, you can build the `git-bundle-server` and `git-bundle-web-server`
+executables with
 
 ```ShellSession
-$ go build git-bundle-server/cmd/git-bundle-server
+$ go build -o . ./...
 ```
 
 ## Bundle Management through CLI

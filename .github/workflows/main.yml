@@ -12,20 +12,23 @@ jobs:
         with:
           go-version: '1.19.0'
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           path: src/git-bundle-server
 
+      # TODO: when the '-C' option is available, remove the 'cd ...'
+      # See https://github.com/golang/go/issues/50332 for more details
       - name: Build
         run: |
           cd $GITHUB_WORKSPACE/src/git-bundle-server
-          GOPATH="$GITHUB_WORKSPACE/../../" go build ./cmd/git-bundle-server
-          GOPATH="$GITHUB_WORKSPACE/../../" go build ./cmd/git-bundle-web-server
+          go build -v ./...
 
       - name: Check style
         run: |
           cd $GITHUB_WORKSPACE/src/git-bundle-server
-          GOPATH="$GITHUB_WORKSPACE/../../" go vet ./cmd/git-bundle-server
-          GOPATH="$GITHUB_WORKSPACE/../../" go vet ./cmd/git-bundle-web-server
+          go vet ./...
 
-      # TODO: add automated tests.
+      - name: Run unit tests
+        run:  |
+          cd $GITHUB_WORKSPACE/src/git-bundle-server
+          go test -v ./...
