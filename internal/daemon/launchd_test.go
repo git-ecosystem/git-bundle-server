@@ -258,3 +258,58 @@ func TestLaunchd_Start(t *testing.T) {
 	})
 }
 
+func TestLaunchd_Stop(t *testing.T) {
+	// Set up mocks
+	testUser := &user.User{
+		Uid:      "123",
+		Username: "testuser",
+	}
+	testUserProvider := &mockUserProvider{}
+	testUserProvider.On("CurrentUser").Return(testUser, nil)
+
+	testCommandExecutor := &mockCommandExecutor{}
+
+	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
+
+	// Test #1: launchctl succeeds
+	t.Run("Calls correct launchctl command", func(t *testing.T) {
+		testCommandExecutor.On("Run",
+			"launchctl",
+			[]string{"kill", "SIGINT", fmt.Sprintf("gui/123/%s", basicDaemonConfig.Label)},
+		).Return(0, nil).Once()
+
+		err := launchd.Stop(basicDaemonConfig.Label)
+		assert.Nil(t, err)
+		mock.AssertExpectationsForObjects(t, testCommandExecutor)
+	})
+
+	// Reset the mock structure between tests
+	testCommandExecutor.Mock = mock.Mock{}
+
+	// Test #2: launchctl fails with uncaught error
+	t.Run("Returns error when launchctl fails", func(t *testing.T) {
+		testCommandExecutor.On("Run",
+			mock.AnythingOfType("string"),
+			mock.AnythingOfType("[]string"),
+		).Return(1, nil).Once()
+
+		err := launchd.Stop(basicDaemonConfig.Label)
+		assert.NotNil(t, err)
+		mock.AssertExpectationsForObjects(t, testCommandExecutor)
+	})
+
+	// Reset the mock structure between tests
+	testCommandExecutor.Mock = mock.Mock{}
+
+	// Test #3: launchctl fails with uncaught error
+	t.Run("Exits without error if service not found", func(t *testing.T) {
+		testCommandExecutor.On("Run",
+			mock.AnythingOfType("string"),
+			mock.AnythingOfType("[]string"),
+		).Return(daemon.LaunchdServiceNotFoundErrorCode, nil).Once()
+
+		err := launchd.Stop(basicDaemonConfig.Label)
+		assert.Nil(t, err)
+		mock.AssertExpectationsForObjects(t, testCommandExecutor)
+	})
+}

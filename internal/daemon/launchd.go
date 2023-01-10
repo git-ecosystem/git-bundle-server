@@ -184,5 +184,22 @@ func (l *launchd) Start(label string) error {
 }
 
 func (l *launchd) Stop(label string) error {
-	return fmt.Errorf("not implemented")
+	user, err := l.user.CurrentUser()
+	if err != nil {
+		return fmt.Errorf("could not get current user for launchd service: %w", err)
+	}
+
+	domainTarget := fmt.Sprintf(domainFormat, user.Uid)
+	serviceTarget := fmt.Sprintf("%s/%s", domainTarget, label)
+	exitCode, err := l.cmdExec.Run("launchctl", "kill", "SIGINT", serviceTarget)
+	if err != nil {
+		return err
+	}
+
+	// Don't throw an error if the service hasn't been bootstrapped
+	if exitCode != 0 && exitCode != LaunchdServiceNotFoundErrorCode {
+		return fmt.Errorf("'launchctl kill' exited with status %d", exitCode)
+	}
+
+	return nil
 }
