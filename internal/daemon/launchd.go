@@ -164,7 +164,23 @@ func (l *launchd) Create(config *DaemonConfig, force bool) error {
 }
 
 func (l *launchd) Start(label string) error {
-	return fmt.Errorf("not implemented")
+	user, err := l.user.CurrentUser()
+	if err != nil {
+		return fmt.Errorf("could not get current user for launchd service: %w", err)
+	}
+
+	domainTarget := fmt.Sprintf(domainFormat, user.Uid)
+	serviceTarget := fmt.Sprintf("%s/%s", domainTarget, label)
+	exitCode, err := l.cmdExec.Run("launchctl", "kickstart", serviceTarget)
+	if err != nil {
+		return err
+	}
+
+	if exitCode != 0 {
+		return fmt.Errorf("'launchctl kickstart' exited with status %d", exitCode)
+	}
+
+	return nil
 }
 
 func (l *launchd) Stop(label string) error {

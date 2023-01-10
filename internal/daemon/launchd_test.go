@@ -216,3 +216,45 @@ func TestLaunchd_Create(t *testing.T) {
 		assert.Contains(t, fileContents, fmt.Sprintf("<key>Program</key><string>%s</string>", basicDaemonConfig.Program))
 	})
 }
+
+func TestLaunchd_Start(t *testing.T) {
+	// Set up mocks
+	testUser := &user.User{
+		Uid:      "123",
+		Username: "testuser",
+	}
+	testUserProvider := &mockUserProvider{}
+	testUserProvider.On("CurrentUser").Return(testUser, nil)
+
+	testCommandExecutor := &mockCommandExecutor{}
+
+	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
+
+	// Test #1: launchctl succeeds
+	t.Run("Calls correct launchctl command", func(t *testing.T) {
+		testCommandExecutor.On("Run",
+			"launchctl",
+			[]string{"kickstart", fmt.Sprintf("gui/123/%s", basicDaemonConfig.Label)},
+		).Return(0, nil).Once()
+
+		err := launchd.Start(basicDaemonConfig.Label)
+		assert.Nil(t, err)
+		mock.AssertExpectationsForObjects(t, testCommandExecutor)
+	})
+
+	// Reset the mock structure between tests
+	testCommandExecutor.Mock = mock.Mock{}
+
+	// Test #2: launchctl fails
+	t.Run("Returns error when launchctl fails", func(t *testing.T) {
+		testCommandExecutor.On("Run",
+			mock.AnythingOfType("string"),
+			mock.AnythingOfType("[]string"),
+		).Return(1, nil).Once()
+
+		err := launchd.Start(basicDaemonConfig.Label)
+		assert.NotNil(t, err)
+		mock.AssertExpectationsForObjects(t, testCommandExecutor)
+	})
+}
+
