@@ -8,8 +8,9 @@ import (
 )
 
 type DaemonConfig struct {
-	Label   string
-	Program string
+	Label       string
+	Description string
+	Program     string
 }
 
 type DaemonProvider interface {
@@ -28,7 +29,7 @@ func NewDaemonProvider(
 	switch thisOs := runtime.GOOS; thisOs {
 	case "linux":
 		// Use systemd/systemctl
-		return NewSystemdProvider(), nil
+		return NewSystemdProvider(u, c, fs), nil
 	case "darwin":
 		// Use launchd/launchctl
 		return NewLaunchdProvider(u, c, fs), nil

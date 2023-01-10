@@ -12,8 +12,9 @@ import (
 /*********************************************/
 
 var basicDaemonConfig = daemon.DaemonConfig{
-	Label:   "com.example.testdaemon",
-	Program: "/usr/local/bin/test/git-bundle-web-server",
+	Label:       "com.example.testdaemon",
+	Description: "Test service",
+	Program:     "/usr/local/bin/test/git-bundle-web-server",
 }
 
 /*********************************************/
