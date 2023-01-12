@@ -82,7 +82,17 @@ func (s *systemd) Create(config *DaemonConfig, force bool) error {
 }
 
 func (s *systemd) Start(label string) error {
-	return fmt.Errorf("not implemented")
+	// TODO: warn user if already running
+	exitCode, err := s.cmdExec.Run("systemctl", "--user", "start", label)
+	if err != nil {
+		return err
+	}
+
+	if exitCode != 0 {
+		return fmt.Errorf("'systemctl stop' exited with status %d", exitCode)
+	}
+
+	return nil
 }
 
 func (s *systemd) Stop(label string) error {

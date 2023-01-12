@@ -162,3 +162,45 @@ func TestSystemd_Create(t *testing.T) {
 		assert.Contains(t, fileContents, fmt.Sprintf("Description=%s", basicDaemonConfig.Description))
 	})
 }
+
+func TestSystemd_Start(t *testing.T) {
+	// Set up mocks
+	testUser := &user.User{
+		Uid:      "123",
+		Username: "testuser",
+		HomeDir:  "/my/test/dir",
+	}
+	testUserProvider := &mockUserProvider{}
+	testUserProvider.On("CurrentUser").Return(testUser, nil)
+
+	testCommandExecutor := &mockCommandExecutor{}
+
+	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, nil)
+
+	// Test #1: systemctl succeeds
+	t.Run("Calls correct systemctl command", func(t *testing.T) {
+		testCommandExecutor.On("Run",
+			"systemctl",
+			[]string{"--user", "start", basicDaemonConfig.Label},
+		).Return(0, nil).Once()
+
+		err := systemd.Start(basicDaemonConfig.Label)
+		assert.Nil(t, err)
+		mock.AssertExpectationsForObjects(t, testCommandExecutor)
+	})
+
+	// Reset the mock structure between tests
+	testCommandExecutor.Mock = mock.Mock{}
+
+	// Test #2: systemctl fails
+	t.Run("Returns error when systemctl fails", func(t *testing.T) {
+		testCommandExecutor.On("Run",
+			mock.AnythingOfType("string"),
+			mock.AnythingOfType("[]string"),
+		).Return(1, nil).Once()
+
+		err := systemd.Start(basicDaemonConfig.Label)
+		assert.NotNil(t, err)
+		mock.AssertExpectationsForObjects(t, testCommandExecutor)
+	})
+}
