@@ -15,6 +15,12 @@ func (Init) Name() string {
 	return "init"
 }
 
+func (Init) Description() string {
+	return `
+Initialize a repository by cloning a bare repo from '<url>', whose bundles
+should be hosted at '<route>'.`
+}
+
 func (Init) run(args []string) error {
 	if len(args) < 2 {
 		// TODO: allow parsing <route> out of <url>

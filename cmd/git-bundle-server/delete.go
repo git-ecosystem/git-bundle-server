@@ -13,6 +13,12 @@ func (Delete) Name() string {
 	return "delete"
 }
 
+func (Delete) Description() string {
+	return `
+Remove the configuration for the given '<route>' and delete its repository
+data.`
+}
+
 func (Delete) run(args []string) error {
 	if len(args) < 1 {
 		return errors.New("usage: git-bundle-server delete <route>")

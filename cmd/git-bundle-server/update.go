@@ -14,6 +14,13 @@ func (Update) Name() string {
 	return "update"
 }
 
+func (Update) Description() string {
+	return `
+For the repository in the current directory (or the one specified by
+'<route>'), fetch the latest content from the remote, create a new set of
+bundles, and update the bundle list.`
+}
+
 func (Update) run(args []string) error {
 	if len(args) != 1 {
 		// TODO: allow parsing <route> out of <url>

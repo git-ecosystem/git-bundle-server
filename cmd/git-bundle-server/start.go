@@ -14,6 +14,12 @@ func (Start) Name() string {
 	return "start"
 }
 
+func (Start) Description() string {
+	return `
+Start computing bundles and serving content for the repository at the
+specified '<route>'.`
+}
+
 func (Start) run(args []string) error {
 	if len(args) < 1 {
 		return errors.New("usage: git-bundle-server start <route>")

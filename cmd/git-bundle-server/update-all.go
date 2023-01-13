@@ -14,6 +14,11 @@ func (UpdateAll) Name() string {
 	return "update-all"
 }
 
+func (UpdateAll) Description() string {
+	return `
+For every configured route, run 'git-bundle-server update <options> <route>'.`
+}
+
 func (UpdateAll) run(args []string) error {
 	exe, err := os.Executable()
 	if err != nil {
