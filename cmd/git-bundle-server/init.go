@@ -1,9 +1,9 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/git"
@@ -22,21 +22,19 @@ should be hosted at '<route>'.`
 }
 
 func (Init) Run(args []string) error {
-	if len(args) < 2 {
-		// TODO: allow parsing <route> out of <url>
-		return errors.New("usage: git-bundle-server init <url> <route>")
-	}
+	parser := argparse.NewArgParser("git-bundle-server init <url> <route>")
+	url := parser.PositionalString("url", "the URL of a repository to clone")
+	// TODO: allow parsing <route> out of <url>
+	route := parser.PositionalString("route", "the route to host the specified repo")
+	parser.Parse(args)
 
-	url := args[0]
-	route := args[1]
-
-	repo, err := core.CreateRepository(route)
+	repo, err := core.CreateRepository(*route)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Cloning repository from %s\n", url)
-	gitErr := git.GitCommand("clone", "--bare", url, repo.RepoDir)
+	fmt.Printf("Cloning repository from %s\n", *url)
+	gitErr := git.GitCommand("clone", "--bare", *url, repo.RepoDir)
 
 	if gitErr != nil {
 		return fmt.Errorf("failed to clone repository: %w", gitErr)

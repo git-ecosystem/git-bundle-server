@@ -1,8 +1,7 @@
 package main
 
 import (
-	"errors"
-
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
@@ -19,11 +18,9 @@ specified '<route>'.`
 }
 
 func (Stop) Run(args []string) error {
-	if len(args) < 1 {
-		return errors.New("usage: git-bundle-server stop <route>")
-	}
+	parser := argparse.NewArgParser("git-bundle-server stop <route>")
+	route := parser.PositionalString("route", "the route for which bundles should stop being generated")
+	parser.Parse(args)
 
-	route := args[0]
-
-	return core.RemoveRoute(route)
+	return core.RemoveRoute(*route)
 }

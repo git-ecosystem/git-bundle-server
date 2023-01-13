@@ -1,9 +1,9 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/core"
 )
@@ -22,13 +22,11 @@ bundles, and update the bundle list.`
 }
 
 func (Update) Run(args []string) error {
-	if len(args) != 1 {
-		// TODO: allow parsing <route> out of <url>
-		return errors.New("usage: git-bundle-server update <route>")
-	}
+	parser := argparse.NewArgParser("git-bundle-server update <route>")
+	route := parser.PositionalString("route", "the route to update")
+	parser.Parse(args)
 
-	route := args[0]
-	repo, err := core.CreateRepository(route)
+	repo, err := core.CreateRepository(*route)
 	if err != nil {
 		return err
 	}
