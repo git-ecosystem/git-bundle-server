@@ -1,7 +1,7 @@
 package main
 
 type Subcommand interface {
-	subcommand() string
+	Name() string
 	run(args []string) error
 }
 

@@ -10,7 +10,7 @@ import (
 
 type Start struct{}
 
-func (Start) subcommand() string {
+func (Start) Name() string {
 	return "start"
 }
 

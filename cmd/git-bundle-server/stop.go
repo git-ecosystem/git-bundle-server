@@ -8,7 +8,7 @@ import (
 
 type Stop struct{}
 
-func (Stop) subcommand() string {
+func (Stop) Name() string {
 	return "stop"
 }
 

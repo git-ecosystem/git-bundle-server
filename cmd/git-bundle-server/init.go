@@ -11,7 +11,7 @@ import (
 
 type Init struct{}
 
-func (Init) subcommand() string {
+func (Init) Name() string {
 	return "init"
 }
 

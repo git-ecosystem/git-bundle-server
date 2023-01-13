@@ -10,7 +10,7 @@ import (
 
 type Update struct{}
 
-func (Update) subcommand() string {
+func (Update) Name() string {
 	return "update"
 }
 

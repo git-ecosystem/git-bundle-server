@@ -9,7 +9,7 @@ import (
 
 type Delete struct{}
 
-func (Delete) subcommand() string {
+func (Delete) Name() string {
 	return "delete"
 }
 
