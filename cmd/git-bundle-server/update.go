@@ -1,27 +1,32 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
 type Update struct{}
 
-func (Update) subcommand() string {
+func (Update) Name() string {
 	return "update"
 }
 
-func (Update) run(args []string) error {
-	if len(args) != 1 {
-		// TODO: allow parsing <route> out of <url>
-		return errors.New("usage: git-bundle-server update <route>")
-	}
+func (Update) Description() string {
+	return `
+For the repository in the current directory (or the one specified by
+'<route>'), fetch the latest content from the remote, create a new set of
+bundles, and update the bundle list.`
+}
 
-	route := args[0]
-	repo, err := core.CreateRepository(route)
+func (Update) Run(args []string) error {
+	parser := argparse.NewArgParser("git-bundle-server update <route>")
+	route := parser.PositionalString("route", "the route to update")
+	parser.Parse(args)
+
+	repo, err := core.CreateRepository(*route)
 	if err != nil {
 		return err
 	}

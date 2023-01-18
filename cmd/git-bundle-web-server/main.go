@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"sync"
+	"syscall"
 
 	"github.com/github/git-bundle-server/internal/core"
 )
@@ -79,13 +83,48 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func main() {
+func createAndStartServer(address string, serverWaitGroup *sync.WaitGroup) *http.Server {
+	// Create the HTTP server
+	server := &http.Server{Addr: address}
+
 	// API routes
 	http.HandleFunc("/", serve)
 
-	port := ":8080"
-	fmt.Println("Server is running on port" + port)
+	// Add to wait group
+	serverWaitGroup.Add(1)
 
-	// Start server on port specified above
-	log.Fatal(http.ListenAndServe(port, nil))
+	go func() {
+		defer serverWaitGroup.Done()
+
+		// Return error unless it indicates graceful shutdown
+		err := server.ListenAndServe()
+		if err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	fmt.Println("Server is running at address " + address)
+	return server
+}
+
+func main() {
+	serverWaitGroup := &sync.WaitGroup{}
+
+	// Start the server asynchronously
+	port := ":8080"
+	server := createAndStartServer(port, serverWaitGroup)
+
+	// Intercept interrupt signals
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("Starting graceful server shutdown...")
+		server.Shutdown(context.Background())
+	}()
+
+	// Wait for server to shut down
+	serverWaitGroup.Wait()
+
+	fmt.Println("Shutdown complete")
 }

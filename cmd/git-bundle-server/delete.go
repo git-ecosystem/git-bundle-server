@@ -1,31 +1,35 @@
 package main
 
 import (
-	"errors"
 	"os"
 
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
 type Delete struct{}
 
-func (Delete) subcommand() string {
+func (Delete) Name() string {
 	return "delete"
 }
 
-func (Delete) run(args []string) error {
-	if len(args) < 1 {
-		return errors.New("usage: git-bundle-server delete <route>")
-	}
+func (Delete) Description() string {
+	return `
+Remove the configuration for the given '<route>' and delete its repository
+data.`
+}
 
-	route := args[0]
+func (Delete) Run(args []string) error {
+	parser := argparse.NewArgParser("git-bundle-server delete <route>")
+	route := parser.PositionalString("route", "the route to delete")
+	parser.Parse(args)
 
-	repo, err := core.CreateRepository(route)
+	repo, err := core.CreateRepository(*route)
 	if err != nil {
 		return err
 	}
 
-	err = core.RemoveRoute(route)
+	err = core.RemoveRoute(*route)
 	if err != nil {
 		return err
 	}

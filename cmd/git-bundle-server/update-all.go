@@ -5,16 +5,25 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
 type UpdateAll struct{}
 
-func (UpdateAll) subcommand() string {
+func (UpdateAll) Name() string {
 	return "update-all"
 }
 
-func (UpdateAll) run(args []string) error {
+func (UpdateAll) Description() string {
+	return `
+For every configured route, run 'git-bundle-server update <options> <route>'.`
+}
+
+func (UpdateAll) Run(args []string) error {
+	parser := argparse.NewArgParser("git-bundle-server update-all")
+	parser.Parse(args)
+
 	exe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get path to execuable: %w", err)

@@ -1,23 +1,26 @@
 package main
 
 import (
-	"errors"
-
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
 type Stop struct{}
 
-func (Stop) subcommand() string {
+func (Stop) Name() string {
 	return "stop"
 }
 
-func (Stop) run(args []string) error {
-	if len(args) < 1 {
-		return errors.New("usage: git-bundle-server stop <route>")
-	}
+func (Stop) Description() string {
+	return `
+Stop computing bundles or serving content for the repository at the
+specified '<route>'.`
+}
 
-	route := args[0]
+func (Stop) Run(args []string) error {
+	parser := argparse.NewArgParser("git-bundle-server stop <route>")
+	route := parser.PositionalString("route", "the route for which bundles should stop being generated")
+	parser.Parse(args)
 
-	return core.RemoveRoute(route)
+	return core.RemoveRoute(*route)
 }
