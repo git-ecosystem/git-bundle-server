@@ -21,7 +21,7 @@ Initialize a repository by cloning a bare repo from '<url>', whose bundles
 should be hosted at '<route>'.`
 }
 
-func (Init) run(args []string) error {
+func (Init) Run(args []string) error {
 	if len(args) < 2 {
 		// TODO: allow parsing <route> out of <url>
 		return errors.New("usage: git-bundle-server init <url> <route>")

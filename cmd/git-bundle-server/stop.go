@@ -18,7 +18,7 @@ Stop computing bundles or serving content for the repository at the
 specified '<route>'.`
 }
 
-func (Stop) run(args []string) error {
+func (Stop) Run(args []string) error {
 	if len(args) < 1 {
 		return errors.New("usage: git-bundle-server stop <route>")
 	}

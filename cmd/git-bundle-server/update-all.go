@@ -19,7 +19,7 @@ func (UpdateAll) Description() string {
 For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
-func (UpdateAll) run(args []string) error {
+func (UpdateAll) Run(args []string) error {
 	exe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get path to execuable: %w", err)

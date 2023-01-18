@@ -20,7 +20,7 @@ Start computing bundles and serving content for the repository at the
 specified '<route>'.`
 }
 
-func (Start) run(args []string) error {
+func (Start) Run(args []string) error {
 	if len(args) < 1 {
 		return errors.New("usage: git-bundle-server start <route>")
 	}

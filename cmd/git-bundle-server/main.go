@@ -15,7 +15,7 @@ func main() {
 
 	for i := 0; i < len(cmds); i++ {
 		if cmds[i].Name() == os.Args[1] {
-			err := cmds[i].run(os.Args[2:])
+			err := cmds[i].Run(os.Args[2:])
 			if err != nil {
 				log.Fatal("Failed with error: ", err)
 			}

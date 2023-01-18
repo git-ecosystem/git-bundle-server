@@ -21,7 +21,7 @@ For the repository in the current directory (or the one specified by
 bundles, and update the bundle list.`
 }
 
-func (Update) run(args []string) error {
+func (Update) Run(args []string) error {
 	if len(args) != 1 {
 		// TODO: allow parsing <route> out of <url>
 		return errors.New("usage: git-bundle-server update <route>")

@@ -3,7 +3,7 @@ package main
 type Subcommand interface {
 	Name() string
 	Description() string
-	run(args []string) error
+	Run(args []string) error
 }
 
 func all() []Subcommand {

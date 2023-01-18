@@ -19,7 +19,7 @@ Remove the configuration for the given '<route>' and delete its repository
 data.`
 }
 
-func (Delete) run(args []string) error {
+func (Delete) Run(args []string) error {
 	if len(args) < 1 {
 		return errors.New("usage: git-bundle-server delete <route>")
 	}
