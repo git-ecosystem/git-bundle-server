@@ -3,7 +3,20 @@ package main
 import (
 	"log"
 	"os"
+
+	"github.com/github/git-bundle-server/internal/argparse"
 )
+
+func all() []argparse.Subcommand {
+	return []argparse.Subcommand{
+		Delete{},
+		Init{},
+		Start{},
+		Stop{},
+		Update{},
+		UpdateAll{},
+	}
+}
 
 func main() {
 	cmds := all()
