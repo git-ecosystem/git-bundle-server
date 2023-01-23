@@ -101,6 +101,25 @@ var systemdCreateServiceUnitTests = []struct {
 			"ExecStart='/path/to/the/program with a space'",
 		},
 	},
+	{
+		title: "Service unit ExecStart captures args, quoted and escaped",
+		config: &daemon.DaemonConfig{
+			Label:       "test-escape",
+			Description: "Another program description",
+			Program:     "/path/to/the/program with a space",
+			Arguments: []string{
+				"--my-option",
+				"an arg with double quotes \", single quotes ', and spaces!",
+			},
+		},
+		expectedServiceUnitLines: []string{
+			"[Unit]",
+			"Description=Another program description",
+			"[Service]",
+			"Type=simple",
+			"ExecStart='/path/to/the/program with a space' '--my-option' 'an arg with double quotes \", single quotes \\', and spaces!'",
+		},
+	},
 }
 
 func TestSystemd_Create(t *testing.T) {

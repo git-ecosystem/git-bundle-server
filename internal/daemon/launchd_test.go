@@ -129,6 +129,11 @@ var launchdCreatePlistTests = []struct {
 			"<key>StandardErrorPath</key>",
 			"<string>/dev/null</string>",
 
+			"<key>ProgramArguments</key>",
+			"<array>",
+			fmt.Sprintf("<string>%s</string>", basicDaemonConfig.Program),
+			"</array>",
+
 			"</dict>",
 			"</plist>",
 		},
@@ -160,6 +165,47 @@ var launchdCreatePlistTests = []struct {
 
 			"<key>StandardErrorPath</key>",
 			"<string>/dev/null</string>",
+
+			"<key>ProgramArguments</key>",
+			"<array>",
+			"<string>/path/to/the/program with a space</string>",
+			"</array>",
+
+			"</dict>",
+			"</plist>",
+		},
+	},
+	{
+		title: "Created plist captures args",
+		config: &daemon.DaemonConfig{
+			Label:     "test-with-args",
+			Program:   "/path/to/the/program",
+			Arguments: []string{"--test", "another-arg"},
+		},
+		expectedPlistLines: []string{
+			`<?xml version="1.0" encoding="UTF-8"?>`,
+			`<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">`,
+			`<plist version="1.0">`,
+			"<dict>",
+
+			"<key>Label</key>",
+			"<string>test-with-args</string>",
+
+			"<key>Program</key>",
+			"<string>/path/to/the/program</string>",
+
+			"<key>StandardOutPath</key>",
+			"<string>/dev/null</string>",
+
+			"<key>StandardErrorPath</key>",
+			"<string>/dev/null</string>",
+
+			"<key>ProgramArguments</key>",
+			"<array>",
+			"<string>/path/to/the/program</string>",
+			"<string>--test</string>",
+			"<string>another-arg</string>",
+			"</array>",
 
 			"</dict>",
 			"</plist>",

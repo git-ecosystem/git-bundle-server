@@ -15,7 +15,7 @@ Description={{.Description}}
 
 [Service]
 Type=simple
-ExecStart={{sq_escape .Program}}
+ExecStart={{sq_escape .Program}}{{range .Arguments}} {{sq_escape .}}{{end}}
 `
 
 type systemd struct {

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/github/git-bundle-server/internal/common"
+	"github.com/github/git-bundle-server/internal/utils"
 )
 
 type xmlItem struct {
@@ -36,6 +37,15 @@ func (p *plist) addKeyValue(key string, value any) {
 	switch value := value.(type) {
 	case string:
 		p.Config.Elements = append(p.Config.Elements, xmlItem{XMLName: xmlName("string"), Value: value})
+	case []string:
+		p.Config.Elements = append(p.Config.Elements,
+			xmlArray{
+				XMLName: xmlName("array"),
+				Elements: utils.Map(value, func(e string) interface{} {
+					return xmlItem{XMLName: xmlName("string"), Value: e}
+				}),
+			},
+		)
 	default:
 		panic("Invalid value type in 'addKeyValue'")
 	}
@@ -60,6 +70,18 @@ func (c *launchdConfig) toPlist() *plist {
 	p.addKeyValue("Program", c.Program)
 	p.addKeyValue("StandardOutPath", c.StdOut)
 	p.addKeyValue("StandardErrorPath", c.StdErr)
+
+	// IMPORTANT!!!
+	// You must explicitly set the first argument to the executable path
+	// because 'ProgramArguments' maps directly 'argv' in 'execvp'. The
+	// programs calling this library likely will, by convention, assume the
+	// first element of 'argv' is the executing program.
+	// See https://www.unix.com/man-page/osx/5/launchd.plist/ and
+	// https://man7.org/linux/man-pages/man3/execvp.3.html for more details.
+	args := make([]string, len(c.Arguments)+1)
+	args[0] = c.Program
+	copy(args[1:], c.Arguments[:])
+	p.addKeyValue("ProgramArguments", args)
 
 	return p
 }
