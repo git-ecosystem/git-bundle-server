@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/user"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/github/git-bundle-server/internal/daemon"
@@ -12,7 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var launchdCreateTests = []struct {
+var launchdCreateBehaviorTests = []struct {
 	title string
 
 	// Inputs
@@ -97,6 +99,74 @@ var launchdCreateTests = []struct {
 	},
 }
 
+var launchdCreatePlistTests = []struct {
+	title string
+
+	// Inputs
+	config *daemon.DaemonConfig
+
+	// Expected values
+	expectedPlistLines []string
+}{
+	{
+		title:  "Created plist is correct",
+		config: &basicDaemonConfig,
+		expectedPlistLines: []string{
+			`<?xml version="1.0" encoding="UTF-8"?>`,
+			`<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">`,
+			`<plist version="1.0">`,
+			"<dict>",
+
+			"<key>Label</key>",
+			fmt.Sprintf("<string>%s</string>", basicDaemonConfig.Label),
+
+			"<key>Program</key>",
+			fmt.Sprintf("<string>%s</string>", basicDaemonConfig.Program),
+
+			"<key>StandardOutPath</key>",
+			"<string>/dev/null</string>",
+
+			"<key>StandardErrorPath</key>",
+			"<string>/dev/null</string>",
+
+			"</dict>",
+			"</plist>",
+		},
+	},
+	{
+		title: "Plist contents are escaped",
+		config: &daemon.DaemonConfig{
+			// All of <'&"\t> should be replaced by the associated escape code
+			// 🤔 is in-range for XML (no replacement), but ￿ (\uFFFF) is
+			// out-of-range and replaced with � (\uFFFD)
+			// See https://www.w3.org/TR/xml11/Overview.html#charsets for details
+			Label:   "test-escape<'&\"	🤔￿>",
+			Program: "/path/to/the/program with a space",
+		},
+		expectedPlistLines: []string{
+			`<?xml version="1.0" encoding="UTF-8"?>`,
+			`<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">`,
+			`<plist version="1.0">`,
+			"<dict>",
+
+			"<key>Label</key>",
+			"<string>test-escape&lt;&#39;&amp;&#34;&#x9;🤔�&gt;</string>",
+
+			"<key>Program</key>",
+			"<string>/path/to/the/program with a space</string>",
+
+			"<key>StandardOutPath</key>",
+			"<string>/dev/null</string>",
+
+			"<key>StandardErrorPath</key>",
+			"<string>/dev/null</string>",
+
+			"</dict>",
+			"</plist>",
+		},
+	},
+}
+
 func TestLaunchd_Create(t *testing.T) {
 	// Set up mocks
 	testUser := &user.User{
@@ -114,7 +184,7 @@ func TestLaunchd_Create(t *testing.T) {
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
 
 	// Verify launchd commands called
-	for _, tt := range launchdCreateTests {
+	for _, tt := range launchdCreateBehaviorTests {
 		forceArg := tt.force.toBoolList()
 		for _, force := range forceArg {
 			t.Run(fmt.Sprintf("%s (force='%t')", tt.title, force), func(t *testing.T) {
@@ -168,53 +238,61 @@ func TestLaunchd_Create(t *testing.T) {
 	}
 
 	// Verify content of created file
-	t.Run("Created file content and path are correct", func(t *testing.T) {
-		var actualFilename string
-		var actualFileBytes []byte
+	for _, tt := range launchdCreatePlistTests {
+		t.Run(tt.title, func(t *testing.T) {
+			var actualFilename string
+			var actualFileBytes []byte
 
-		// Mock responses for successful fresh write
-		testCommandExecutor.On("Run",
-			"launchctl",
-			mock.MatchedBy(func(args []string) bool { return args[0] == "print" }),
-		).Return(daemon.LaunchdServiceNotFoundErrorCode, nil).Once()
-		testCommandExecutor.On("Run",
-			"launchctl",
-			mock.MatchedBy(func(args []string) bool { return args[0] == "bootstrap" }),
-		).Return(0, nil).Once()
-		testFileSystem.On("FileExists",
-			mock.AnythingOfType("string"),
-		).Return(false, nil).Once()
+			// Mock responses for successful fresh write
+			testCommandExecutor.On("Run",
+				"launchctl",
+				mock.MatchedBy(func(args []string) bool { return args[0] == "print" }),
+			).Return(daemon.LaunchdServiceNotFoundErrorCode, nil).Once()
+			testCommandExecutor.On("Run",
+				"launchctl",
+				mock.MatchedBy(func(args []string) bool { return args[0] == "bootstrap" }),
+			).Return(0, nil).Once()
+			testFileSystem.On("FileExists",
+				mock.AnythingOfType("string"),
+			).Return(false, nil).Once()
 
-		// Use mock to save off input args
-		testFileSystem.On("WriteFile",
-			mock.MatchedBy(func(filename string) bool {
-				actualFilename = filename
-				return true
-			}),
-			mock.MatchedBy(func(fileBytes any) bool {
-				// Save off value and always match
-				actualFileBytes = fileBytes.([]byte)
-				return true
-			}),
-		).Return(nil).Once()
+			// Use mock to save off input args
+			testFileSystem.On("WriteFile",
+				mock.MatchedBy(func(filename string) bool {
+					actualFilename = filename
+					return true
+				}),
+				mock.MatchedBy(func(fileBytes any) bool {
+					// Save off value and always match
+					actualFileBytes = fileBytes.([]byte)
+					return true
+				}),
+			).Return(nil).Once()
 
-		err := launchd.Create(&basicDaemonConfig, false)
-		assert.Nil(t, err)
-		mock.AssertExpectationsForObjects(t, testCommandExecutor, testFileSystem)
+			err := launchd.Create(tt.config, false)
+			assert.Nil(t, err)
+			mock.AssertExpectationsForObjects(t, testCommandExecutor, testFileSystem)
 
-		// Check filename
-		expectedFilename := filepath.Clean(fmt.Sprintf("/my/test/dir/Library/LaunchAgents/%s.plist", basicDaemonConfig.Label))
-		assert.Equal(t, expectedFilename, actualFilename)
+			// Check filename
+			expectedFilename := filepath.Clean(fmt.Sprintf("/my/test/dir/Library/LaunchAgents/%s.plist", tt.config.Label))
+			assert.Equal(t, expectedFilename, actualFilename)
 
-		// Check file contents
-		err = xml.Unmarshal(actualFileBytes, new(interface{}))
-		if err != nil {
-			assert.Fail(t, "plist XML is malformed")
-		}
-		fileContents := string(actualFileBytes)
-		assert.Contains(t, fileContents, fmt.Sprintf("<key>Label</key><string>%s</string>", basicDaemonConfig.Label))
-		assert.Contains(t, fileContents, fmt.Sprintf("<key>Program</key><string>%s</string>", basicDaemonConfig.Program))
-	})
+			// Check XML
+			err = xml.Unmarshal(actualFileBytes, new(interface{}))
+			if err != nil {
+				assert.Fail(t, "plist XML is malformed")
+			}
+			fileContents := strings.TrimSpace(string(actualFileBytes))
+			plistLines := strings.Split(
+				regexp.MustCompile(`>\s*<`).ReplaceAllString(fileContents, ">\n<"), "\n")
+
+			assert.ElementsMatch(t, tt.expectedPlistLines, plistLines)
+
+			// Reset mocks
+			testCommandExecutor.Mock = mock.Mock{}
+			testFileSystem.Mock = mock.Mock{}
+		})
+	}
 }
 
 func TestLaunchd_Start(t *testing.T) {
