@@ -15,30 +15,19 @@ import (
 )
 
 func parseRoute(path string) (string, string, string, error) {
-	if len(path) == 0 {
+	elements := strings.FieldsFunc(path, func(char rune) bool { return char == '/' })
+	switch len(elements) {
+	case 0:
 		return "", "", "", fmt.Errorf("empty route")
-	}
-
-	if path[0] == '/' {
-		path = path[1:]
-	}
-
-	slash1 := strings.Index(path, "/")
-	if slash1 < 0 {
+	case 1:
 		return "", "", "", fmt.Errorf("route has owner, but no repo")
-	}
-	slash2 := strings.Index(path[slash1+1:], "/")
-	if slash2 < 0 {
-		// No trailing slash.
-		return path[:slash1], path[slash1+1:], "", nil
-	}
-	slash2 += slash1 + 1
-	slash3 := strings.Index(path[slash2+1:], "/")
-	if slash3 >= 0 {
+	case 2:
+		return elements[0], elements[1], "", nil
+	case 3:
+		return elements[0], elements[1], elements[2], nil
+	default:
 		return "", "", "", fmt.Errorf("path has depth exceeding three")
 	}
-
-	return path[:slash1], path[slash1+1 : slash2], path[slash2+1:], nil
 }
 
 func serve(w http.ResponseWriter, r *http.Request) {
