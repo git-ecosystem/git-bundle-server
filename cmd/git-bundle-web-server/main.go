@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
@@ -90,12 +92,22 @@ func startServer(server *http.Server, serverWaitGroup *sync.WaitGroup) {
 }
 
 func main() {
+	parser := argparse.NewArgParser("git-bundle-web-server [--port <port>]")
+	port := parser.String("port", "8080", "The port on which the server should be hosted")
+	parser.Parse(os.Args[1:])
+
+	// Additional option validation
+	p, err := strconv.Atoi(*port)
+	if err != nil || p < 0 || p > 65535 {
+		parser.Usage("Invalid port '%s'.", *port)
+	}
+
 	// Configure the server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serve)
 	server := &http.Server{
 		Handler: mux,
-		Addr:    ":8080",
+		Addr:    ":" + *port,
 	}
 	serverWaitGroup := &sync.WaitGroup{}
 
