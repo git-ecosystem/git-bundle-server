@@ -74,7 +74,10 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func startServer(server *http.Server, serverWaitGroup *sync.WaitGroup) {
+func startServer(server *http.Server,
+	cert string, key string,
+	serverWaitGroup *sync.WaitGroup,
+) {
 	// Add to wait group
 	serverWaitGroup.Add(1)
 
@@ -82,8 +85,14 @@ func startServer(server *http.Server, serverWaitGroup *sync.WaitGroup) {
 		defer serverWaitGroup.Done()
 
 		// Return error unless it indicates graceful shutdown
-		err := server.ListenAndServe()
-		if err != http.ErrServerClosed {
+		var err error
+		if cert != "" {
+			err = server.ListenAndServeTLS(cert, key)
+		} else {
+			err = server.ListenAndServe()
+		}
+
+		if err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
 	}()
@@ -92,14 +101,19 @@ func startServer(server *http.Server, serverWaitGroup *sync.WaitGroup) {
 }
 
 func main() {
-	parser := argparse.NewArgParser("git-bundle-web-server [--port <port>]")
+	parser := argparse.NewArgParser("git-bundle-web-server [--port <port>] [--cert <filename> --key <filename>]")
 	port := parser.String("port", "8080", "The port on which the server should be hosted")
+	cert := parser.String("cert", "", "The path to the X.509 SSL certificate file to use in securely hosting the server")
+	key := parser.String("key", "", "The path to the certificate's private key")
 	parser.Parse(os.Args[1:])
 
 	// Additional option validation
 	p, err := strconv.Atoi(*port)
 	if err != nil || p < 0 || p > 65535 {
 		parser.Usage("Invalid port '%s'.", *port)
+	}
+	if (*cert == "") != (*key == "") {
+		parser.Usage("Both '--cert' and '--key' are needed to specify SSL configuration.")
 	}
 
 	// Configure the server
@@ -112,7 +126,7 @@ func main() {
 	serverWaitGroup := &sync.WaitGroup{}
 
 	// Start the server asynchronously
-	startServer(server, serverWaitGroup)
+	startServer(server, *cert, *key, serverWaitGroup)
 
 	// Intercept interrupt signals
 	c := make(chan os.Signal, 1)
