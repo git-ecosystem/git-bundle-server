@@ -83,13 +83,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func createAndStartServer(address string, serverWaitGroup *sync.WaitGroup) *http.Server {
-	// Create the HTTP server
-	server := &http.Server{Addr: address}
-
-	// API routes
-	http.HandleFunc("/", serve)
-
+func startServer(server *http.Server, serverWaitGroup *sync.WaitGroup) {
 	// Add to wait group
 	serverWaitGroup.Add(1)
 
@@ -103,16 +97,21 @@ func createAndStartServer(address string, serverWaitGroup *sync.WaitGroup) *http
 		}
 	}()
 
-	fmt.Println("Server is running at address " + address)
-	return server
+	fmt.Println("Server is running at address " + server.Addr)
 }
 
 func main() {
+	// Configure the server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", serve)
+	server := &http.Server{
+		Handler: mux,
+		Addr:    ":8080",
+	}
 	serverWaitGroup := &sync.WaitGroup{}
 
 	// Start the server asynchronously
-	port := ":8080"
-	server := createAndStartServer(port, serverWaitGroup)
+	startServer(server, serverWaitGroup)
 
 	// Intercept interrupt signals
 	c := make(chan os.Signal, 1)
