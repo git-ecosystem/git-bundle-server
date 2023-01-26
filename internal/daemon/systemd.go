@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/github/git-bundle-server/internal/common"
@@ -14,7 +15,7 @@ Description={{.Description}}
 
 [Service]
 Type=simple
-ExecStart={{.Program}}
+ExecStart={{sq_escape .Program}}
 `
 
 type systemd struct {
@@ -43,7 +44,11 @@ func (s *systemd) Create(config *DaemonConfig, force bool) error {
 
 	// Generate the configuration
 	var newServiceUnit bytes.Buffer
-	t, err := template.New(config.Label).Parse(serviceTemplate)
+	t, err := template.New(config.Label).Funcs(template.FuncMap{
+		"sq_escape": func(str string) string {
+			return fmt.Sprintf("'%s'", strings.ReplaceAll(str, "'", "\\'"))
+		},
+	}).Parse(serviceTemplate)
 	if err != nil {
 		return fmt.Errorf("unable to generate systemd configuration: %w", err)
 	}

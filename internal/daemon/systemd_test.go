@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/user"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/github/git-bundle-server/internal/daemon"
@@ -11,7 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var systemdCreateTests = []struct {
+var systemdCreateBehaviorTests = []struct {
 	title string
 
 	// Inputs
@@ -64,6 +66,43 @@ var systemdCreateTests = []struct {
 	},
 }
 
+var systemdCreateServiceUnitTests = []struct {
+	title string
+
+	// Inputs
+	config *daemon.DaemonConfig
+
+	// Expected values
+	expectedServiceUnitLines []string
+}{
+	{
+		title:  "Created service unit contents are correct",
+		config: &basicDaemonConfig,
+		expectedServiceUnitLines: []string{
+			"[Unit]",
+			fmt.Sprintf("Description=%s", basicDaemonConfig.Description),
+			"[Service]",
+			"Type=simple",
+			fmt.Sprintf("ExecStart='%s'", basicDaemonConfig.Program),
+		},
+	},
+	{
+		title: "Service unit ExecStart with space is quoted",
+		config: &daemon.DaemonConfig{
+			Label:       "test-quoting",
+			Description: "My program's description (double quotes \" are ok too)",
+			Program:     "/path/to/the/program with a space",
+		},
+		expectedServiceUnitLines: []string{
+			"[Unit]",
+			"Description=My program's description (double quotes \" are ok too)",
+			"[Service]",
+			"Type=simple",
+			"ExecStart='/path/to/the/program with a space'",
+		},
+	},
+}
+
 func TestSystemd_Create(t *testing.T) {
 	// Set up mocks
 	testUser := &user.User{
@@ -80,7 +119,7 @@ func TestSystemd_Create(t *testing.T) {
 
 	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, testFileSystem)
 
-	for _, tt := range systemdCreateTests {
+	for _, tt := range systemdCreateBehaviorTests {
 		forceArg := tt.force.toBoolList()
 		for _, force := range forceArg {
 			t.Run(fmt.Sprintf("%s (force='%t')", tt.title, force), func(t *testing.T) {
@@ -122,45 +161,54 @@ func TestSystemd_Create(t *testing.T) {
 	}
 
 	// Verify content of created file
-	t.Run("Created file content and path are correct", func(t *testing.T) {
-		var actualFilename string
-		var actualFileBytes []byte
+	for _, tt := range systemdCreateServiceUnitTests {
+		t.Run(tt.title, func(t *testing.T) {
+			var actualFilename string
+			var actualFileBytes []byte
 
-		// Mock responses for successful fresh write
-		testCommandExecutor.On("Run",
-			"systemctl",
-			[]string{"--user", "daemon-reload"},
-		).Return(0, nil).Once()
-		testFileSystem.On("FileExists",
-			mock.AnythingOfType("string"),
-		).Return(false, nil).Once()
+			// Mock responses for successful fresh write
+			testCommandExecutor.On("Run",
+				"systemctl",
+				[]string{"--user", "daemon-reload"},
+			).Return(0, nil).Once()
+			testFileSystem.On("FileExists",
+				mock.AnythingOfType("string"),
+			).Return(false, nil).Once()
 
-		// Use mock to save off input args
-		testFileSystem.On("WriteFile",
-			mock.MatchedBy(func(filename string) bool {
-				actualFilename = filename
-				return true
-			}),
-			mock.MatchedBy(func(fileBytes any) bool {
-				// Save off value and always match
-				actualFileBytes = fileBytes.([]byte)
-				return true
-			}),
-		).Return(nil).Once()
+			// Use mock to save off input args
+			testFileSystem.On("WriteFile",
+				mock.MatchedBy(func(filename string) bool {
+					actualFilename = filename
+					return true
+				}),
+				mock.MatchedBy(func(fileBytes any) bool {
+					// Save off value and always match
+					actualFileBytes = fileBytes.([]byte)
+					return true
+				}),
+			).Return(nil).Once()
 
-		err := systemd.Create(&basicDaemonConfig, false)
-		assert.Nil(t, err)
-		mock.AssertExpectationsForObjects(t, testCommandExecutor, testFileSystem)
+			err := systemd.Create(tt.config, false)
+			assert.Nil(t, err)
+			mock.AssertExpectationsForObjects(t, testCommandExecutor, testFileSystem)
 
-		// Check filename
-		expectedFilename := filepath.Clean(fmt.Sprintf("/my/test/dir/.config/systemd/user/%s.service", basicDaemonConfig.Label))
-		assert.Equal(t, expectedFilename, actualFilename)
+			// Check filename
+			expectedFilename := filepath.Clean(fmt.Sprintf("/my/test/dir/.config/systemd/user/%s.service", tt.config.Label))
+			assert.Equal(t, expectedFilename, actualFilename)
 
-		// Check file contents
-		fileContents := string(actualFileBytes)
-		assert.Contains(t, fileContents, fmt.Sprintf("ExecStart=%s", basicDaemonConfig.Program))
-		assert.Contains(t, fileContents, fmt.Sprintf("Description=%s", basicDaemonConfig.Description))
-	})
+			// Check file contents
+			// Ensure there's no more than one newline between each line
+			// before splitting the file.
+			fileContents := strings.TrimSpace(string(actualFileBytes))
+			serviceUnitLines := strings.Split(
+				regexp.MustCompile(`\n+`).ReplaceAllString(fileContents, "\n"), "\n")
+			assert.ElementsMatch(t, tt.expectedServiceUnitLines, serviceUnitLines)
+
+			// Reset mocks
+			testCommandExecutor.Mock = mock.Mock{}
+			testFileSystem.Mock = mock.Mock{}
+		})
+	}
 }
 
 func TestSystemd_Start(t *testing.T) {
