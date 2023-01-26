@@ -2,16 +2,17 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 )
@@ -102,31 +103,29 @@ func startServer(server *http.Server,
 
 func main() {
 	parser := argparse.NewArgParser("git-bundle-web-server [--port <port>] [--cert <filename> --key <filename>]")
-	port := parser.String("port", "8080", "The port on which the server should be hosted")
-	cert := parser.String("cert", "", "The path to the X.509 SSL certificate file to use in securely hosting the server")
-	key := parser.String("key", "", "The path to the certificate's private key")
+	flags, validate := utils.WebServerFlags(parser)
+	flags.VisitAll(func(f *flag.Flag) {
+		parser.Var(f.Value, f.Name, f.Usage)
+	})
 	parser.Parse(os.Args[1:])
+	validate()
 
-	// Additional option validation
-	p, err := strconv.Atoi(*port)
-	if err != nil || p < 0 || p > 65535 {
-		parser.Usage("Invalid port '%s'.", *port)
-	}
-	if (*cert == "") != (*key == "") {
-		parser.Usage("Both '--cert' and '--key' are needed to specify SSL configuration.")
-	}
+	// Get the flag values
+	port := utils.GetFlagValue[string](parser, "port")
+	cert := utils.GetFlagValue[string](parser, "cert")
+	key := utils.GetFlagValue[string](parser, "key")
 
 	// Configure the server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serve)
 	server := &http.Server{
 		Handler: mux,
-		Addr:    ":" + *port,
+		Addr:    ":" + port,
 	}
 	serverWaitGroup := &sync.WaitGroup{}
 
 	// Start the server asynchronously
-	startServer(server, *cert, *key, serverWaitGroup)
+	startServer(server, cert, key, serverWaitGroup)
 
 	// Intercept interrupt signals
 	c := make(chan os.Signal, 1)
