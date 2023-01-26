@@ -2,11 +2,13 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/daemon"
@@ -77,9 +79,19 @@ func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
 func (w *webServer) startServer(args []string) error {
 	// Parse subcommand arguments
 	parser := argparse.NewArgParser("git-bundle-server web-server start [-f|--force]")
+
+	// Args for 'git-bundle-server web-server start'
 	force := parser.Bool("force", false, "Whether to force reconfiguration of the web server daemon")
 	parser.BoolVar(force, "f", false, "Alias of --force")
+
+	// Arguments passed through to 'git-bundle-web-server'
+	webServerFlags, validate := utils.WebServerFlags(parser)
+	webServerFlags.VisitAll(func(f *flag.Flag) {
+		parser.Var(f.Value, f.Name, fmt.Sprintf("[Web server] %s", f.Usage))
+	})
+
 	parser.Parse(args)
+	validate()
 
 	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
@@ -89,6 +101,33 @@ func (w *webServer) startServer(args []string) error {
 	config, err := w.getDaemonConfig()
 	if err != nil {
 		return err
+	}
+
+	// Configure flags
+	loopErr := error(nil)
+	parser.Visit(func(f *flag.Flag) {
+		if webServerFlags.Lookup(f.Name) != nil {
+			value := f.Value.String()
+			if f.Name == "cert" || f.Name == "key" {
+				// Need the absolute value of the path
+				value, err = filepath.Abs(value)
+				if err != nil {
+					if loopErr == nil {
+						// NEEDSWORK: Only report the first error because Go
+						// doesn't like it when you manually chain errors :(
+						// Luckily, this is slated to change in v1.20, per
+						// https://tip.golang.org/doc/go1.20#errors
+						loopErr = fmt.Errorf("could not get absolute path of '%s': %w", f.Name, err)
+					}
+					return
+				}
+			}
+			config.Arguments = append(config.Arguments, fmt.Sprintf("--%s", f.Name), value)
+		}
+	})
+	if loopErr != nil {
+		// Error happened in 'Visit'
+		return loopErr
 	}
 
 	err = d.Create(config, *force)
