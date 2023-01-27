@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/github/git-bundle-server/internal/daemon"
+	. "github.com/github/git-bundle-server/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -18,12 +19,12 @@ var systemdCreateBehaviorTests = []struct {
 
 	// Inputs
 	config *daemon.DaemonConfig
-	force  boolArg
+	force  BoolArg
 
 	// Mocked responses (ordered per list!)
-	fileExists            []pair[bool, error]
+	fileExists            []Pair[bool, error]
 	writeFile             []error
-	systemctlDaemonReload []pair[int, error]
+	systemctlDaemonReload []Pair[int, error]
 
 	// Expected values
 	expectErr bool
@@ -35,9 +36,9 @@ var systemdCreateBehaviorTests = []struct {
 			Program: "/usr/local/bin/test/git-bundle-web-server",
 		},
 		Any,
-		[]pair[bool, error]{newPair[bool, error](false, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](false, nil)}, // file exists
 		[]error{nil}, // write file
-		[]pair[int, error]{newPair[int, error](0, nil)}, // systemctl daemon-reload
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // systemctl daemon-reload
 		false,
 	},
 	{
@@ -47,9 +48,9 @@ var systemdCreateBehaviorTests = []struct {
 			Program: "/usr/local/bin/test/git-bundle-web-server",
 		},
 		False,
-		[]pair[bool, error]{newPair[bool, error](true, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](true, nil)}, // file exists
 		[]error{},            // write file
-		[]pair[int, error]{}, // systemctl daemon-reload
+		[]Pair[int, error]{}, // systemctl daemon-reload
 		false,
 	},
 	{
@@ -59,9 +60,9 @@ var systemdCreateBehaviorTests = []struct {
 			Program: "/usr/local/bin/test/git-bundle-web-server",
 		},
 		True,
-		[]pair[bool, error]{newPair[bool, error](true, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](true, nil)}, // file exists
 		[]error{nil}, // write file
-		[]pair[int, error]{newPair[int, error](0, nil)}, // systemctl daemon-reload
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // systemctl daemon-reload
 		false,
 	},
 }
@@ -129,24 +130,24 @@ func TestSystemd_Create(t *testing.T) {
 		Username: "testuser",
 		HomeDir:  "/my/test/dir",
 	}
-	testUserProvider := &mockUserProvider{}
+	testUserProvider := &MockUserProvider{}
 	testUserProvider.On("CurrentUser").Return(testUser, nil)
 
-	testCommandExecutor := &mockCommandExecutor{}
+	testCommandExecutor := &MockCommandExecutor{}
 
-	testFileSystem := &mockFileSystem{}
+	testFileSystem := &MockFileSystem{}
 
 	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range systemdCreateBehaviorTests {
-		forceArg := tt.force.toBoolList()
+		forceArg := tt.force.ToBoolList()
 		for _, force := range forceArg {
 			t.Run(fmt.Sprintf("%s (force='%t')", tt.title, force), func(t *testing.T) {
 				// Mock responses
 				for _, retVal := range tt.fileExists {
 					testFileSystem.On("FileExists",
 						mock.AnythingOfType("string"),
-					).Return(retVal.first, retVal.second).Once()
+					).Return(retVal.First, retVal.Second).Once()
 				}
 				for _, retVal := range tt.writeFile {
 					testFileSystem.On("WriteFile",
@@ -158,7 +159,7 @@ func TestSystemd_Create(t *testing.T) {
 					testCommandExecutor.On("Run",
 						"systemctl",
 						[]string{"--user", "daemon-reload"},
-					).Return(retVal.first, retVal.second).Once()
+					).Return(retVal.First, retVal.Second).Once()
 				}
 
 				// Run "Create"
@@ -237,10 +238,10 @@ func TestSystemd_Start(t *testing.T) {
 		Username: "testuser",
 		HomeDir:  "/my/test/dir",
 	}
-	testUserProvider := &mockUserProvider{}
+	testUserProvider := &MockUserProvider{}
 	testUserProvider.On("CurrentUser").Return(testUser, nil)
 
-	testCommandExecutor := &mockCommandExecutor{}
+	testCommandExecutor := &MockCommandExecutor{}
 
 	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, nil)
 
@@ -279,10 +280,10 @@ func TestSystemd_Stop(t *testing.T) {
 		Username: "testuser",
 		HomeDir:  "/my/test/dir",
 	}
-	testUserProvider := &mockUserProvider{}
+	testUserProvider := &MockUserProvider{}
 	testUserProvider.On("CurrentUser").Return(testUser, nil)
 
-	testCommandExecutor := &mockCommandExecutor{}
+	testCommandExecutor := &MockCommandExecutor{}
 
 	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, nil)
 
