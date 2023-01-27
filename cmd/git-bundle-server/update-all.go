@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/github/git-bundle-server/internal/argparse"
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
@@ -21,6 +22,8 @@ For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
 func (UpdateAll) Run(args []string) error {
+	fs := common.NewFileSystem()
+
 	parser := argparse.NewArgParser("git-bundle-server update-all")
 	parser.Parse(args)
 
@@ -29,7 +32,7 @@ func (UpdateAll) Run(args []string) error {
 		return fmt.Errorf("failed to get path to execuable: %w", err)
 	}
 
-	repos, err := core.GetRepositories()
+	repos, err := core.GetRepositories(fs)
 	if err != nil {
 		return err
 	}

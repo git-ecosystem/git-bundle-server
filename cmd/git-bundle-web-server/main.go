@@ -14,6 +14,7 @@ import (
 
 	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
@@ -34,6 +35,7 @@ func parseRoute(path string) (string, string, string, error) {
 }
 
 func serve(w http.ResponseWriter, r *http.Request) {
+	fs := common.NewFileSystem()
 	path := r.URL.Path
 
 	owner, repo, file, err := parseRoute(path)
@@ -45,7 +47,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 
 	route := owner + "/" + repo
 
-	repos, err := core.GetRepositories()
+	repos, err := core.GetRepositories(fs)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Printf("Failed to load routes\n")

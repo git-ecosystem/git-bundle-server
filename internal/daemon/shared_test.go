@@ -89,3 +89,8 @@ func (m *mockFileSystem) WriteFile(filename string, content []byte) error {
 	fnArgs := m.Called(filename, content)
 	return fnArgs.Error(0)
 }
+
+func (m *mockFileSystem) ReadFileLines(filename string) ([]string, error) {
+	fnArgs := m.Called(filename)
+	return fnArgs.Get(0).([]string), fnArgs.Error(1)
+}
