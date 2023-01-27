@@ -35,6 +35,10 @@ func parseRoute(path string) (string, string, string, error) {
 }
 
 func serve(w http.ResponseWriter, r *http.Request) {
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return
+	}
 	fs := common.NewFileSystem()
 	path := r.URL.Path
 
@@ -47,7 +51,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 
 	route := owner + "/" + repo
 
-	repos, err := core.GetRepositories(fs)
+	repos, err := core.GetRepositories(user, fs)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Printf("Failed to load routes\n")

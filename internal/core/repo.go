@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
 
 	"github.com/github/git-bundle-server/internal/common"
 )
@@ -15,8 +16,12 @@ type Repository struct {
 }
 
 func CreateRepository(route string) (*Repository, error) {
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return nil, err
+	}
 	fs := common.NewFileSystem()
-	repos, err := GetRepositories(fs)
+	repos, err := GetRepositories(user, fs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse routes file")
 	}
@@ -26,8 +31,8 @@ func CreateRepository(route string) (*Repository, error) {
 		return &repo, nil
 	}
 
-	repodir := reporoot() + route
-	web := webroot() + route
+	repodir := reporoot(user) + route
+	web := webroot(user) + route
 
 	mkdirErr := os.MkdirAll(web, os.ModePerm)
 	if mkdirErr != nil {
@@ -51,8 +56,12 @@ func CreateRepository(route string) (*Repository, error) {
 }
 
 func RemoveRoute(route string) error {
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return err
+	}
 	fs := common.NewFileSystem()
-	repos, err := GetRepositories(fs)
+	repos, err := GetRepositories(user, fs)
 	if err != nil {
 		return fmt.Errorf("failed to parse routes file")
 	}
@@ -68,7 +77,11 @@ func RemoveRoute(route string) error {
 }
 
 func WriteRouteFile(repos map[string]Repository) error {
-	dir := bundleroot()
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return err
+	}
+	dir := bundleroot(user)
 	routefile := dir + "/routes"
 
 	contents := ""
@@ -80,10 +93,10 @@ func WriteRouteFile(repos map[string]Repository) error {
 	return os.WriteFile(routefile, []byte(contents), 0o600)
 }
 
-func GetRepositories(fs common.FileSystem) (map[string]Repository, error) {
+func GetRepositories(user *user.User, fs common.FileSystem) (map[string]Repository, error) {
 	repos := make(map[string]Repository)
 
-	dir := bundleroot()
+	dir := bundleroot(user)
 	routefile := dir + "/routes"
 
 	lines, err := fs.ReadFileLines(routefile)
@@ -97,8 +110,8 @@ func GetRepositories(fs common.FileSystem) (map[string]Repository, error) {
 
 		repo := Repository{
 			Route:   route,
-			RepoDir: reporoot() + route,
-			WebDir:  webroot() + route,
+			RepoDir: reporoot(user) + route,
+			WebDir:  webroot(user) + route,
 		}
 		repos[route] = repo
 	}

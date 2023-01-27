@@ -5,10 +5,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
 func SetCronSchedule() error {
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return err
+	}
+
 	pathToExec, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get executable: %w", err)
@@ -33,7 +39,7 @@ func SetCronSchedule() error {
 	}
 
 	scheduleBytes = append(scheduleBytes, []byte(dailySchedule)...)
-	scheduleFile := core.CrontabFile()
+	scheduleFile := core.CrontabFile(user)
 
 	err = os.WriteFile(scheduleFile, scheduleBytes, 0o600)
 	if err != nil {

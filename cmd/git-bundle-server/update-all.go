@@ -22,6 +22,10 @@ For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
 func (UpdateAll) Run(args []string) error {
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return err
+	}
 	fs := common.NewFileSystem()
 
 	parser := argparse.NewArgParser("git-bundle-server update-all")
@@ -32,7 +36,7 @@ func (UpdateAll) Run(args []string) error {
 		return fmt.Errorf("failed to get path to execuable: %w", err)
 	}
 
-	repos, err := core.GetRepositories(fs)
+	repos, err := core.GetRepositories(user, fs)
 	if err != nil {
 		return err
 	}

@@ -94,3 +94,8 @@ func (m *mockFileSystem) ReadFileLines(filename string) ([]string, error) {
 	fnArgs := m.Called(filename)
 	return fnArgs.Get(0).([]string), fnArgs.Error(1)
 }
+
+func (m *mockFileSystem) UserHomeDir() (string, error) {
+	fnArgs := m.Called()
+	return fnArgs.String(0), fnArgs.Error(1)
+}
