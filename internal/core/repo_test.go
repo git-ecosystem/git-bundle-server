@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"errors"
 	"os/user"
 	"testing"
 
@@ -26,6 +27,59 @@ var getRepositoriesTests = []struct {
 		[]core.Repository{},
 		false,
 	},
+	{
+		"error from filesystem",
+		NewPair([]string{}, errors.New("error")),
+		[]core.Repository{},
+		true,
+	},
+	{
+		"one repository",
+		NewPair[[]string, error]([]string{
+			"git/git",
+		}, nil),
+		[]core.Repository{
+			{
+				Route:   "git/git",
+				RepoDir: "/my/test/dir/git-bundle-server/git/git/git",
+				WebDir:  "/my/test/dir/git-bundle-server/www/git/git",
+			},
+		},
+		false,
+	},
+	{
+		"multiple repositories",
+		NewPair[[]string, error]([]string{
+			"git/git",
+			"github/github",
+			"org with spaces/repo with spaces",
+			"", // Skips empty lines.
+			"three/deep/repo",
+		}, nil),
+		[]core.Repository{
+			{
+				Route:   "git/git",
+				RepoDir: "/my/test/dir/git-bundle-server/git/git/git",
+				WebDir:  "/my/test/dir/git-bundle-server/www/git/git",
+			},
+			{
+				Route:   "github/github",
+				RepoDir: "/my/test/dir/git-bundle-server/git/github/github",
+				WebDir:  "/my/test/dir/git-bundle-server/www/github/github",
+			},
+			{
+				Route:   "org with spaces/repo with spaces",
+				RepoDir: "/my/test/dir/git-bundle-server/git/org with spaces/repo with spaces",
+				WebDir:  "/my/test/dir/git-bundle-server/www/org with spaces/repo with spaces",
+			},
+			{
+				Route:   "three/deep/repo",
+				RepoDir: "/my/test/dir/git-bundle-server/git/three/deep/repo",
+				WebDir:  "/my/test/dir/git-bundle-server/www/three/deep/repo",
+			},
+		},
+		false,
+	},
 }
 
 func TestRepos_GetRepositories(t *testing.T) {
@@ -38,7 +92,7 @@ func TestRepos_GetRepositories(t *testing.T) {
 
 	for _, tt := range getRepositoriesTests {
 		t.Run(tt.title, func(t *testing.T) {
-			testFileSystem.On("UserHomeDir").Return("~", nil)
+			testFileSystem.On("UserHomeDir").Return("/my/test/dir", nil)
 			testFileSystem.On("ReadFileLines",
 				mock.AnythingOfType("string"),
 			).Return(tt.readFileLines.First, tt.readFileLines.Second).Once()
