@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/github/git-bundle-server/internal/daemon"
+	. "github.com/github/git-bundle-server/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -19,14 +20,14 @@ var launchdCreateBehaviorTests = []struct {
 
 	// Inputs
 	config *daemon.DaemonConfig
-	force  boolArg
+	force  BoolArg
 
 	// Mocked responses
-	fileExists         []pair[bool, error]
+	fileExists         []Pair[bool, error]
 	writeFile          []error
-	launchctlPrint     []pair[int, error]
-	launchctlBootstrap []pair[int, error]
-	launchctlBootout   []pair[int, error]
+	launchctlPrint     []Pair[int, error]
+	launchctlBootstrap []Pair[int, error]
+	launchctlBootout   []Pair[int, error]
 
 	// Expected values
 	expectErr bool
@@ -35,66 +36,66 @@ var launchdCreateBehaviorTests = []struct {
 		"Fresh config created if none exists",
 		&basicDaemonConfig,
 		Any,
-		[]pair[bool, error]{newPair[bool, error](false, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](false, nil)}, // file exists
 		[]error{nil}, // write file
-		[]pair[int, error]{newPair[int, error](daemon.LaunchdServiceNotFoundErrorCode, nil)}, // launchctl print (isBootstrapped)
-		[]pair[int, error]{newPair[int, error](0, nil)},                                      // launchctl bootstrap
-		[]pair[int, error]{}, // launchctl bootout
+		[]Pair[int, error]{NewPair[int, error](daemon.LaunchdServiceNotFoundErrorCode, nil)}, // launchctl print (isBootstrapped)
+		[]Pair[int, error]{NewPair[int, error](0, nil)},                                      // launchctl bootstrap
+		[]Pair[int, error]{}, // launchctl bootout
 		false,
 	},
 	{
 		"Config exists & is not bootstrapped doesn't write file, bootstraps",
 		&basicDaemonConfig,
 		False,
-		[]pair[bool, error]{newPair[bool, error](true, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](true, nil)}, // file exists
 		[]error{}, // write file
-		[]pair[int, error]{newPair[int, error](daemon.LaunchdServiceNotFoundErrorCode, nil)}, // launchctl print (isBootstrapped)
-		[]pair[int, error]{newPair[int, error](0, nil)},                                      // launchctl bootstrap
-		[]pair[int, error]{}, // launchctl bootout
+		[]Pair[int, error]{NewPair[int, error](daemon.LaunchdServiceNotFoundErrorCode, nil)}, // launchctl print (isBootstrapped)
+		[]Pair[int, error]{NewPair[int, error](0, nil)},                                      // launchctl bootstrap
+		[]Pair[int, error]{}, // launchctl bootout
 		false,
 	},
 	{
 		"'force' option overwrites file and bootstraps when not already bootstrapped",
 		&basicDaemonConfig,
 		True,
-		[]pair[bool, error]{newPair[bool, error](true, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](true, nil)}, // file exists
 		[]error{nil}, // write file
-		[]pair[int, error]{newPair[int, error](daemon.LaunchdServiceNotFoundErrorCode, nil)}, // launchctl print (isBootstrapped)
-		[]pair[int, error]{newPair[int, error](0, nil)},                                      // launchctl bootstrap
-		[]pair[int, error]{}, // launchctl bootout
+		[]Pair[int, error]{NewPair[int, error](daemon.LaunchdServiceNotFoundErrorCode, nil)}, // launchctl print (isBootstrapped)
+		[]Pair[int, error]{NewPair[int, error](0, nil)},                                      // launchctl bootstrap
+		[]Pair[int, error]{}, // launchctl bootout
 		false,
 	},
 	{
 		"Config exists & already bootstrapped does nothing",
 		&basicDaemonConfig,
 		False,
-		[]pair[bool, error]{newPair[bool, error](true, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](true, nil)}, // file exists
 		[]error{}, // write file
-		[]pair[int, error]{newPair[int, error](0, nil)}, // launchctl print (isBootstrapped)
-		[]pair[int, error]{},                            // launchctl bootstrap
-		[]pair[int, error]{},                            // launchctl bootout
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // launchctl print (isBootstrapped)
+		[]Pair[int, error]{},                            // launchctl bootstrap
+		[]Pair[int, error]{},                            // launchctl bootout
 		false,
 	},
 	{
 		"'force' option unloads config, overwrites file, and bootstraps",
 		&basicDaemonConfig,
 		True,
-		[]pair[bool, error]{newPair[bool, error](true, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](true, nil)}, // file exists
 		[]error{nil}, // write file
-		[]pair[int, error]{newPair[int, error](0, nil)}, // launchctl print (isBootstrapped)
-		[]pair[int, error]{newPair[int, error](0, nil)}, // launchctl bootstrap
-		[]pair[int, error]{newPair[int, error](0, nil)}, // launchctl bootout
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // launchctl print (isBootstrapped)
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // launchctl bootstrap
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // launchctl bootout
 		false,
 	},
 	{
 		"Config missing & already bootstrapped throws error",
 		&basicDaemonConfig,
 		Any,
-		[]pair[bool, error]{newPair[bool, error](false, nil)}, // file exists
+		[]Pair[bool, error]{NewPair[bool, error](false, nil)}, // file exists
 		[]error{}, // write file
-		[]pair[int, error]{newPair[int, error](0, nil)}, // launchctl print (isBootstrapped)
-		[]pair[int, error]{},                            // launchctl bootstrap
-		[]pair[int, error]{},                            // launchctl bootout
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // launchctl print (isBootstrapped)
+		[]Pair[int, error]{},                            // launchctl bootstrap
+		[]Pair[int, error]{},                            // launchctl bootout
 		true,
 	},
 }
@@ -220,18 +221,18 @@ func TestLaunchd_Create(t *testing.T) {
 		Username: "testuser",
 		HomeDir:  "/my/test/dir",
 	}
-	testUserProvider := &mockUserProvider{}
+	testUserProvider := &MockUserProvider{}
 	testUserProvider.On("CurrentUser").Return(testUser, nil)
 
-	testCommandExecutor := &mockCommandExecutor{}
+	testCommandExecutor := &MockCommandExecutor{}
 
-	testFileSystem := &mockFileSystem{}
+	testFileSystem := &MockFileSystem{}
 
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
 
 	// Verify launchd commands called
 	for _, tt := range launchdCreateBehaviorTests {
-		forceArg := tt.force.toBoolList()
+		forceArg := tt.force.ToBoolList()
 		for _, force := range forceArg {
 			t.Run(fmt.Sprintf("%s (force='%t')", tt.title, force), func(t *testing.T) {
 				// Mock responses
@@ -239,24 +240,24 @@ func TestLaunchd_Create(t *testing.T) {
 					testCommandExecutor.On("Run",
 						"launchctl",
 						mock.MatchedBy(func(args []string) bool { return args[0] == "print" }),
-					).Return(retVal.first, retVal.second).Once()
+					).Return(retVal.First, retVal.Second).Once()
 				}
 				for _, retVal := range tt.launchctlBootstrap {
 					testCommandExecutor.On("Run",
 						"launchctl",
 						mock.MatchedBy(func(args []string) bool { return args[0] == "bootstrap" }),
-					).Return(retVal.first, retVal.second).Once()
+					).Return(retVal.First, retVal.Second).Once()
 				}
 				for _, retVal := range tt.launchctlBootout {
 					testCommandExecutor.On("Run",
 						"launchctl",
 						mock.MatchedBy(func(args []string) bool { return args[0] == "bootout" }),
-					).Return(retVal.first, retVal.second).Once()
+					).Return(retVal.First, retVal.Second).Once()
 				}
 				for _, retVal := range tt.fileExists {
 					testFileSystem.On("FileExists",
 						mock.AnythingOfType("string"),
-					).Return(retVal.first, retVal.second).Once()
+					).Return(retVal.First, retVal.Second).Once()
 				}
 				for _, retVal := range tt.writeFile {
 					testFileSystem.On("WriteFile",
@@ -347,10 +348,10 @@ func TestLaunchd_Start(t *testing.T) {
 		Uid:      "123",
 		Username: "testuser",
 	}
-	testUserProvider := &mockUserProvider{}
+	testUserProvider := &MockUserProvider{}
 	testUserProvider.On("CurrentUser").Return(testUser, nil)
 
-	testCommandExecutor := &mockCommandExecutor{}
+	testCommandExecutor := &MockCommandExecutor{}
 
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
 
@@ -388,10 +389,10 @@ func TestLaunchd_Stop(t *testing.T) {
 		Uid:      "123",
 		Username: "testuser",
 	}
-	testUserProvider := &mockUserProvider{}
+	testUserProvider := &MockUserProvider{}
 	testUserProvider.On("CurrentUser").Return(testUser, nil)
 
-	testCommandExecutor := &mockCommandExecutor{}
+	testCommandExecutor := &MockCommandExecutor{}
 
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
 

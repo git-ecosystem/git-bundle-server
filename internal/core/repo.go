@@ -1,11 +1,12 @@
 package core
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"os"
+	"os/user"
+
+	"github.com/github/git-bundle-server/internal/common"
 )
 
 type Repository struct {
@@ -15,7 +16,12 @@ type Repository struct {
 }
 
 func CreateRepository(route string) (*Repository, error) {
-	repos, err := GetRepositories()
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return nil, err
+	}
+	fs := common.NewFileSystem()
+	repos, err := GetRepositories(user, fs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse routes file")
 	}
@@ -25,8 +31,8 @@ func CreateRepository(route string) (*Repository, error) {
 		return &repo, nil
 	}
 
-	repodir := reporoot() + route
-	web := webroot() + route
+	repodir := reporoot(user) + route
+	web := webroot(user) + route
 
 	mkdirErr := os.MkdirAll(web, os.ModePerm)
 	if mkdirErr != nil {
@@ -50,7 +56,12 @@ func CreateRepository(route string) (*Repository, error) {
 }
 
 func RemoveRoute(route string) error {
-	repos, err := GetRepositories()
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return err
+	}
+	fs := common.NewFileSystem()
+	repos, err := GetRepositories(user, fs)
 	if err != nil {
 		return fmt.Errorf("failed to parse routes file")
 	}
@@ -66,7 +77,11 @@ func RemoveRoute(route string) error {
 }
 
 func WriteRouteFile(repos map[string]Repository) error {
-	dir := bundleroot()
+	user, err := common.NewUserProvider().CurrentUser()
+	if err != nil {
+		return err
+	}
+	dir := bundleroot(user)
 	routefile := dir + "/routes"
 
 	contents := ""
@@ -78,32 +93,25 @@ func WriteRouteFile(repos map[string]Repository) error {
 	return os.WriteFile(routefile, []byte(contents), 0o600)
 }
 
-func GetRepositories() (map[string]Repository, error) {
+func GetRepositories(user *user.User, fs common.FileSystem) (map[string]Repository, error) {
 	repos := make(map[string]Repository)
 
-	dir := bundleroot()
+	dir := bundleroot(user)
 	routefile := dir + "/routes"
 
-	file, err := os.OpenFile(routefile, os.O_RDONLY|os.O_CREATE, 0o600)
+	lines, err := fs.ReadFileLines(routefile)
 	if err != nil {
-		// Assume that the file doesn't exist?
-		return repos, nil
+		return nil, err
 	}
-
-	reader := bufio.NewReader(file)
-	for {
-		line, err := reader.ReadString('\n')
-		if line == "" || line[0] == '\n' ||
-			(err != nil && err != io.EOF) {
-			break
+	for _, route := range lines {
+		if route == "" {
+			continue
 		}
-
-		route := line[0 : len(line)-1]
 
 		repo := Repository{
 			Route:   route,
-			RepoDir: reporoot() + route,
-			WebDir:  webroot() + route,
+			RepoDir: reporoot(user) + route,
+			WebDir:  webroot(user) + route,
 		}
 		repos[route] = repo
 	}
