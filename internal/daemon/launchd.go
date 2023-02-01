@@ -2,24 +2,54 @@ package daemon
 
 import (
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"path/filepath"
-	"text/template"
 
 	"github.com/github/git-bundle-server/internal/common"
+	"github.com/github/git-bundle-server/internal/utils"
 )
 
-const launchTemplate string = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-  <dict>
-    <key>Label</key><string>{{.Label}}</string>
-    <key>Program</key><string>{{.Program}}</string>
-    <key>StandardOutPath</key><string>{{.StdOut}}</string>
-    <key>StandardErrorPath</key><string>{{.StdErr}}</string>
-  </dict>
-</plist>
-`
+type xmlItem struct {
+	XMLName xml.Name
+	Value   string `xml:",chardata"`
+}
+
+type xmlArray struct {
+	XMLName  xml.Name
+	Elements []interface{} `xml:",any"`
+}
+
+type plist struct {
+	XMLName xml.Name `xml:"plist"`
+	Version string   `xml:"version,attr"`
+	Config  xmlArray `xml:"dict"`
+}
+
+const plistHeader string = `<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">`
+
+func xmlName(name string) xml.Name {
+	return xml.Name{Local: name}
+}
+
+func (p *plist) addKeyValue(key string, value any) {
+	p.Config.Elements = append(p.Config.Elements, xmlItem{XMLName: xmlName("key"), Value: key})
+	switch value := value.(type) {
+	case string:
+		p.Config.Elements = append(p.Config.Elements, xmlItem{XMLName: xmlName("string"), Value: value})
+	case []string:
+		p.Config.Elements = append(p.Config.Elements,
+			xmlArray{
+				XMLName: xmlName("array"),
+				Elements: utils.Map(value, func(e string) interface{} {
+					return xmlItem{XMLName: xmlName("string"), Value: e}
+				}),
+			},
+		)
+	default:
+		panic("Invalid value type in 'addKeyValue'")
+	}
+}
 
 const domainFormat string = "gui/%s"
 
@@ -29,6 +59,31 @@ type launchdConfig struct {
 	DaemonConfig
 	StdOut string
 	StdErr string
+}
+
+func (c *launchdConfig) toPlist() *plist {
+	p := &plist{
+		Version: "1.0",
+		Config:  xmlArray{Elements: []interface{}{}},
+	}
+	p.addKeyValue("Label", c.Label)
+	p.addKeyValue("Program", c.Program)
+	p.addKeyValue("StandardOutPath", c.StdOut)
+	p.addKeyValue("StandardErrorPath", c.StdErr)
+
+	// IMPORTANT!!!
+	// You must explicitly set the first argument to the executable path
+	// because 'ProgramArguments' maps directly 'argv' in 'execvp'. The
+	// programs calling this library likely will, by convention, assume the
+	// first element of 'argv' is the executing program.
+	// See https://www.unix.com/man-page/osx/5/launchd.plist/ and
+	// https://man7.org/linux/man-pages/man3/execvp.3.html for more details.
+	args := make([]string, len(c.Arguments)+1)
+	args[0] = c.Program
+	copy(args[1:], c.Arguments[:])
+	p.addKeyValue("ProgramArguments", args)
+
+	return p
 }
 
 type launchd struct {
@@ -104,11 +159,14 @@ func (l *launchd) Create(config *DaemonConfig, force bool) error {
 
 	// Generate the configuration
 	var newPlist bytes.Buffer
-	t, err := template.New(config.Label).Parse(launchTemplate)
+	newPlist.WriteString(xml.Header)
+	newPlist.WriteString(plistHeader)
+	encoder := xml.NewEncoder(&newPlist)
+	encoder.Indent("", "  ")
+	err := encoder.Encode(lConfig.toPlist())
 	if err != nil {
-		return fmt.Errorf("unable to generate launchd configuration: %w", err)
+		return fmt.Errorf("could not encode plist: %w", err)
 	}
-	t.Execute(&newPlist, lConfig)
 
 	// Check the existing file - if it's the same as the new content, do not overwrite
 	user, err := l.user.CurrentUser()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,34 +12,25 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/github/git-bundle-server/cmd/utils"
+	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 )
 
 func parseRoute(path string) (string, string, string, error) {
-	if len(path) == 0 {
+	elements := strings.FieldsFunc(path, func(char rune) bool { return char == '/' })
+	switch len(elements) {
+	case 0:
 		return "", "", "", fmt.Errorf("empty route")
-	}
-
-	if path[0] == '/' {
-		path = path[1:]
-	}
-
-	slash1 := strings.Index(path, "/")
-	if slash1 < 0 {
+	case 1:
 		return "", "", "", fmt.Errorf("route has owner, but no repo")
-	}
-	slash2 := strings.Index(path[slash1+1:], "/")
-	if slash2 < 0 {
-		// No trailing slash.
-		return path[:slash1], path[slash1+1:], "", nil
-	}
-	slash2 += slash1 + 1
-	slash3 := strings.Index(path[slash2+1:], "/")
-	if slash3 >= 0 {
+	case 2:
+		return elements[0], elements[1], "", nil
+	case 3:
+		return elements[0], elements[1], elements[2], nil
+	default:
 		return "", "", "", fmt.Errorf("path has depth exceeding three")
 	}
-
-	return path[:slash1], path[slash1+1 : slash2], path[slash2+1:], nil
 }
 
 func serve(w http.ResponseWriter, r *http.Request) {
@@ -83,13 +75,10 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func createAndStartServer(address string, serverWaitGroup *sync.WaitGroup) *http.Server {
-	// Create the HTTP server
-	server := &http.Server{Addr: address}
-
-	// API routes
-	http.HandleFunc("/", serve)
-
+func startServer(server *http.Server,
+	cert string, key string,
+	serverWaitGroup *sync.WaitGroup,
+) {
 	// Add to wait group
 	serverWaitGroup.Add(1)
 
@@ -97,22 +86,46 @@ func createAndStartServer(address string, serverWaitGroup *sync.WaitGroup) *http
 		defer serverWaitGroup.Done()
 
 		// Return error unless it indicates graceful shutdown
-		err := server.ListenAndServe()
-		if err != http.ErrServerClosed {
+		var err error
+		if cert != "" {
+			err = server.ListenAndServeTLS(cert, key)
+		} else {
+			err = server.ListenAndServe()
+		}
+
+		if err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
 	}()
 
-	fmt.Println("Server is running at address " + address)
-	return server
+	fmt.Println("Server is running at address " + server.Addr)
 }
 
 func main() {
+	parser := argparse.NewArgParser("git-bundle-web-server [--port <port>] [--cert <filename> --key <filename>]")
+	flags, validate := utils.WebServerFlags(parser)
+	flags.VisitAll(func(f *flag.Flag) {
+		parser.Var(f.Value, f.Name, f.Usage)
+	})
+	parser.Parse(os.Args[1:])
+	validate()
+
+	// Get the flag values
+	port := utils.GetFlagValue[string](parser, "port")
+	cert := utils.GetFlagValue[string](parser, "cert")
+	key := utils.GetFlagValue[string](parser, "key")
+
+	// Configure the server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", serve)
+	server := &http.Server{
+		Handler: mux,
+		Addr:    ":" + port,
+	}
 	serverWaitGroup := &sync.WaitGroup{}
 
 	// Start the server asynchronously
-	port := ":8080"
-	server := createAndStartServer(port, serverWaitGroup)
+	startServer(server, cert, key, serverWaitGroup)
 
 	// Intercept interrupt signals
 	c := make(chan os.Signal, 1)

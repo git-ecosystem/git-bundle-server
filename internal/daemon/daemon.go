@@ -11,6 +11,7 @@ type DaemonConfig struct {
 	Label       string
 	Description string
 	Program     string
+	Arguments   []string
 }
 
 type DaemonProvider interface {
