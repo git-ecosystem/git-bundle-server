@@ -70,7 +70,7 @@ func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
 	}
 
 	return &daemon.DaemonConfig{
-		Label:       "com.github.bundleserver",
+		Label:       "com.github.gitbundleserver",
 		Description: "Web server hosting Git Bundle Server content",
 		Program:     programPath,
 	}, nil
