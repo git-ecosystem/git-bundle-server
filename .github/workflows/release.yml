@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*' # matches "v<number...>.<number...>.<number>..."
+
+jobs:
+   # Check prerequisites for the workflow
+  prereqs:
+    name: Prerequisites
+    runs-on: ubuntu-latest
+    outputs:
+      tag_version: ${{ steps.tag.outputs.version }}     # The version number (without preceding "v"), e.g. 1.0.0
+    steps:
+      - name: Determine tag to build
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        id: tag
+
+  package:
+    needs: prereqs
+    name: ${{matrix.jobs.jobname}}
+    strategy:
+      fail-fast: false
+      matrix:
+        jobs:
+          - jobname: Create MacOS .pkg (x86_64)
+            goarch: amd64
+            pool: macos-latest
+            artifact: _dist/*.pkg
+          - jobname: Create MacOS .pkg (ARM64)
+            goarch: arm64
+            pool: macos-latest
+            artifact: _dist/*.pkg
+          - jobname: Create binary Debian package (x86_64)
+            goarch: amd64
+            pool: ubuntu-latest
+            artifact: _dist/*.deb
+    env:
+      GOARCH: ${{matrix.jobs.goarch}}
+    runs-on: ${{matrix.jobs.pool}}
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.19.0'
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Build the release artifact
+        run: make package VERSION=${{ needs.prereqs.outputs.tag_version }}
+      - name: Get the release artifact
+        shell: bash
+        run: |
+          artifacts=(${{matrix.jobs.artifact}})
+
+          # Get path to, and name of, artifact
+          artifactPath="${artifacts[0]}"
+          artifactName=$(basename "$artifactPath")
+
+          # Export variables to environment
+          echo "artifactPath=$artifactPath" >> $GITHUB_ENV
+          echo "artifactName=$artifactName" >> $GITHUB_ENV
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{env.artifactName}}
+          path: ${{github.workspace}}/${{env.artifactPath}}
+          if-no-files-found: error
