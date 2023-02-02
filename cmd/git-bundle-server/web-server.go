@@ -81,7 +81,7 @@ func (w *webServer) startServer(args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server web-server start [-f|--force]")
 
 	// Args for 'git-bundle-server web-server start'
-	force := parser.Bool("force", false, "Whether to force reconfiguration of the web server daemon")
+	force := parser.Bool("force", false, "Force reconfiguration of the web server daemon")
 	parser.BoolVar(force, "f", false, "Alias of --force")
 
 	// Arguments passed through to 'git-bundle-web-server'
