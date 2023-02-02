@@ -20,6 +20,8 @@ type DaemonProvider interface {
 	Start(label string) error
 
 	Stop(label string) error
+
+	Remove(label string) error
 }
 
 func NewDaemonProvider(

@@ -265,3 +265,26 @@ func (l *launchd) Stop(label string) error {
 
 	return nil
 }
+
+func (l *launchd) Remove(label string) error {
+	user, err := l.user.CurrentUser()
+	if err != nil {
+		return fmt.Errorf("could not get current user for launchd service: %w", err)
+	}
+
+	filename := filepath.Join(user.HomeDir, "Library", "LaunchAgents", fmt.Sprintf("%s.plist", label))
+	domainTarget := fmt.Sprintf(domainFormat, user.Uid)
+	serviceTarget := fmt.Sprintf("%s/%s", domainTarget, label)
+
+	_, err = l.bootout(serviceTarget)
+	if err != nil {
+		return fmt.Errorf("could not remove daemon process '%s': %w", label, err)
+	}
+
+	_, err = l.fileSystem.DeleteFile(filename)
+	if err != nil {
+		return fmt.Errorf("could not delete launchd plist: %w", err)
+	}
+
+	return nil
+}

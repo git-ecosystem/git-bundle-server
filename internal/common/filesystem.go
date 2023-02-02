@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"syscall"
 )
 
 type FileSystem interface {
 	FileExists(filename string) (bool, error)
 	WriteFile(filename string, content []byte) error
+	DeleteFile(filename string) (bool, error)
 	ReadFileLines(filename string) ([]string, error)
 }
 
@@ -44,6 +46,20 @@ func (f *fileSystem) WriteFile(filename string, content []byte) error {
 		return fmt.Errorf("could not write file: %w", err)
 	}
 	return nil
+}
+
+func (f *fileSystem) DeleteFile(filename string) (bool, error) {
+	err := os.Remove(filename)
+	if err == nil {
+		return true, nil
+	}
+
+	pathErr, ok := err.(*os.PathError)
+	if ok && pathErr.Err == syscall.ENOENT {
+		return false, nil
+	} else {
+		return false, err
+	}
 }
 
 func (f *fileSystem) ReadFileLines(filename string) ([]string, error) {

@@ -435,7 +435,7 @@ func TestLaunchd_Stop(t *testing.T) {
 	// Reset the mock structure between tests
 	testCommandExecutor.Mock = mock.Mock{}
 
-	// Test #3: launchctl fails with uncaught error
+	// Test #3: launchctl fails with expected error
 	t.Run("Exits without error if service not found", func(t *testing.T) {
 		testCommandExecutor.On("Run",
 			mock.AnythingOfType("string"),
@@ -446,4 +446,103 @@ func TestLaunchd_Stop(t *testing.T) {
 		assert.Nil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
+}
+
+var launchdRemoveTests = []struct {
+	title string
+
+	// Inputs
+	label string
+
+	// Mocked responses
+	launchctlBootout *Pair[int, error]
+	deleteFile       *Pair[bool, error]
+
+	// Expected values
+	expectErr bool
+}{
+	{
+		"Unloads and deletes plist when service loaded",
+		"com.test.service",
+		PtrTo(NewPair[int, error](0, nil)),     // launchctl bootout
+		PtrTo(NewPair[bool, error](true, nil)), // delete file
+		false,
+	},
+	{
+		"Removes plist when service is missing",
+		"com.test.service",
+		PtrTo(NewPair[int, error](daemon.LaunchdNoSuchProcessErrorCode, nil)), // launchctl bootout
+		PtrTo(NewPair[bool, error](true, nil)),                                // delete file
+		false,
+	},
+	{
+		"Removal of non-existent service succeeds",
+		"com.test.service",
+		PtrTo(NewPair[int, error](daemon.LaunchdNoSuchProcessErrorCode, nil)), // launchctl bootout
+		PtrTo(NewPair[bool, error](false, nil)),                               // delete file
+		false,
+	},
+	{
+		"launchctl error code skips file deletion",
+		"com.test.service",
+		PtrTo(NewPair[int, error](-1, nil)), // launchctl bootout
+		nil,                                 // delete file
+		true,
+	},
+	{
+		"Unhandled launchctl error skips file deletion",
+		"com.test.service",
+		PtrTo(NewPair(0, fmt.Errorf("some unhandled error"))), // launchctl bootout
+		nil, // delete file
+		true,
+	},
+}
+
+func TestLaunchd_Remove(t *testing.T) {
+	// Set up mocks
+	testUser := &user.User{
+		Uid:      "123",
+		Username: "testuser",
+		HomeDir:  "/my/test/dir",
+	}
+	testUserProvider := &MockUserProvider{}
+	testUserProvider.On("CurrentUser").Return(testUser, nil)
+
+	testCommandExecutor := &MockCommandExecutor{}
+	testFileSystem := &MockFileSystem{}
+
+	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+
+	for _, tt := range launchdRemoveTests {
+		t.Run(tt.title, func(t *testing.T) {
+			// Setup expected values
+			expectedFilename := filepath.Clean(fmt.Sprintf("/my/test/dir/Library/LaunchAgents/%s.plist", tt.label))
+
+			// Mock responses
+			if tt.launchctlBootout != nil {
+				testCommandExecutor.On("Run",
+					"launchctl",
+					[]string{"bootout", fmt.Sprintf("user/123/%s", tt.label)},
+				).Return(tt.launchctlBootout.First, tt.launchctlBootout.Second).Once()
+			}
+			if tt.deleteFile != nil {
+				testFileSystem.On("DeleteFile",
+					expectedFilename,
+				).Return(tt.deleteFile.First, tt.deleteFile.Second).Once()
+			}
+
+			// Call function
+			err := launchd.Remove(tt.label)
+			mock.AssertExpectationsForObjects(t, testCommandExecutor)
+			if tt.expectErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+
+		// Reset the mocks between tests
+		testCommandExecutor.Mock = mock.Mock{}
+		testFileSystem.Mock = mock.Mock{}
+	}
 }

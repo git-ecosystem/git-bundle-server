@@ -145,7 +145,8 @@ func (w *webServer) startServer(args []string) error {
 
 func (w *webServer) stopServer(args []string) error {
 	// Parse subcommand arguments
-	parser := argparse.NewArgParser("git-bundle-server web-server stop")
+	parser := argparse.NewArgParser("git-bundle-server web-server stop [--remove]")
+	remove := parser.Bool("remove", false, "Remove the web server daemon configuration from the system after stopping")
 	parser.Parse(args)
 
 	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
@@ -161,6 +162,13 @@ func (w *webServer) stopServer(args []string) error {
 	err = d.Stop(config.Label)
 	if err != nil {
 		return err
+	}
+
+	if *remove {
+		err = d.Remove(config.Label)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

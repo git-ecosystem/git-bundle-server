@@ -329,3 +329,88 @@ func TestSystemd_Stop(t *testing.T) {
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
 }
+
+var systemdRemoveTests = []struct {
+	title string
+
+	// Inputs
+	label string
+
+	// Mocked responses
+	deleteFile            *Pair[bool, error]
+	systemctlDaemonReload *Pair[int, error]
+
+	// Expected values
+	expectErr bool
+}{
+	{
+		"Unloads and deletes service unit",
+		"com.test.service",
+		PtrTo(NewPair[bool, error](true, nil)), // delete file
+		PtrTo(NewPair[int, error](0, nil)),     // systemctl daemon-reload
+		false,
+	},
+	{
+		"Reloads daemon even if service unit missing",
+		"com.test.service",
+		PtrTo(NewPair[bool, error](false, nil)), // delete file
+		PtrTo(NewPair[int, error](0, nil)),      // systemctl daemon-reload
+		false,
+	},
+	{
+		"Daemon not reloaded if file cannot be deleted",
+		"com.test.service",
+		PtrTo(NewPair(false, fmt.Errorf("unhandled error"))), // delete file
+		nil, // systemctl daemon-reload
+		true,
+	},
+}
+
+func TestSystemd_Remove(t *testing.T) {
+	// Set up mocks
+	testUser := &user.User{
+		Uid:      "123",
+		Username: "testuser",
+		HomeDir:  "/my/test/dir",
+	}
+	testUserProvider := &MockUserProvider{}
+	testUserProvider.On("CurrentUser").Return(testUser, nil)
+
+	testCommandExecutor := &MockCommandExecutor{}
+	testFileSystem := &MockFileSystem{}
+
+	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+
+	for _, tt := range systemdRemoveTests {
+		t.Run(tt.title, func(t *testing.T) {
+			// Setup expected values
+			expectedFilename := filepath.Clean(fmt.Sprintf("/my/test/dir/.config/systemd/user/%s.service", tt.label))
+
+			// Mock responses
+			if tt.deleteFile != nil {
+				testFileSystem.On("DeleteFile",
+					expectedFilename,
+				).Return(tt.deleteFile.First, tt.deleteFile.Second).Once()
+			}
+			if tt.systemctlDaemonReload != nil {
+				testCommandExecutor.On("Run",
+					"systemctl",
+					[]string{"--user", "daemon-reload"},
+				).Return(tt.systemctlDaemonReload.First, tt.systemctlDaemonReload.Second).Once()
+			}
+
+			// Call function
+			err := systemd.Remove(tt.label)
+			mock.AssertExpectationsForObjects(t, testCommandExecutor)
+			if tt.expectErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+
+		// Reset the mocks between tests
+		testCommandExecutor.Mock = mock.Mock{}
+		testFileSystem.Mock = mock.Mock{}
+	}
+}
