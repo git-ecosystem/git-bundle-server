@@ -53,6 +53,7 @@ func (p *plist) addKeyValue(key string, value any) {
 
 const domainFormat string = "user/%s"
 
+const LaunchdNoSuchProcessErrorCode int = 3
 const LaunchdServiceNotFoundErrorCode int = 113
 
 type launchdConfig struct {
@@ -137,18 +138,20 @@ func (l *launchd) bootstrapFile(domain string, filename string) error {
 	return nil
 }
 
-func (l *launchd) bootoutFile(domain string, filename string) error {
-	// run 'launchctl bootout' on given domain & file
-	exitCode, err := l.cmdExec.Run("launchctl", "bootout", domain, filename)
+func (l *launchd) bootout(serviceTarget string) (bool, error) {
+	// run 'launchctl bootout' on given service target
+	exitCode, err := l.cmdExec.Run("launchctl", "bootout", serviceTarget)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if exitCode != 0 {
-		return fmt.Errorf("'launchctl bootout' exited with status %d", exitCode)
+	if exitCode == 0 {
+		return true, nil
+	} else if exitCode == LaunchdNoSuchProcessErrorCode {
+		return false, nil
+	} else {
+		return false, fmt.Errorf("'launchctl bootout' failed with status %d", exitCode)
 	}
-
-	return nil
 }
 
 func (l *launchd) Create(config *DaemonConfig, force bool) error {
@@ -186,33 +189,31 @@ func (l *launchd) Create(config *DaemonConfig, force bool) error {
 		return err
 	}
 
-	// First, verify whether the file exists
-	// TODO: only overwrite file if file contents have changed
 	fileExists, err := l.fileSystem.FileExists(filename)
 	if err != nil {
 		return fmt.Errorf("could not determine whether plist '%s' exists: %w", filename, err)
 	}
 
-	if alreadyLoaded && !fileExists {
-		// Abort on corrupted configuration
-		return fmt.Errorf("service target '%s' is bootstrapped, but its plist doesn't exist", serviceTarget)
-	}
-
-	if !force && alreadyLoaded {
-		// Not forcing a refresh of the file, so we do nothing
+	// If not forcing re-configuration & the service configuration is valid,
+	// do nothing
+	if !force && alreadyLoaded && fileExists {
 		return nil
 	}
 
-	// Otherwise, write & bootstrap the file
+	// Unload the service so we can reconfigure & reload
 	if alreadyLoaded {
-		// Unload the old file, if necessary
-		l.bootoutFile(domainTarget, filename)
+		_, err = l.bootout(serviceTarget)
+		if err != nil {
+			return fmt.Errorf("could not bootout daemon process '%s': %w", config.Label, err)
+		}
 	}
 
+	// Rewrite the plist, if needed
 	if !fileExists || force {
+		// TODO: only overwrite file if file contents have changed
 		err = l.fileSystem.WriteFile(filename, newPlist.Bytes())
 		if err != nil {
-			return fmt.Errorf("unable to overwrite plist file: %w", err)
+			return fmt.Errorf("unable to write plist file: %w", err)
 		}
 	}
 

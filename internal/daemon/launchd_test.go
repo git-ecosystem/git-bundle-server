@@ -88,15 +88,15 @@ var launchdCreateBehaviorTests = []struct {
 		false,
 	},
 	{
-		"Config missing & already bootstrapped throws error",
+		"Plist missing & already bootstrapped unloads, writes new file, and bootstraps",
 		&basicDaemonConfig,
 		Any,
 		[]Pair[bool, error]{NewPair[bool, error](false, nil)}, // file exists
-		[]error{}, // write file
+		[]error{nil}, // write file
 		[]Pair[int, error]{NewPair[int, error](0, nil)}, // launchctl print (isBootstrapped)
-		[]Pair[int, error]{},                            // launchctl bootstrap
-		[]Pair[int, error]{},                            // launchctl bootout
-		true,
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // launchctl bootstrap
+		[]Pair[int, error]{NewPair[int, error](0, nil)}, // launchctl bootout
+		false,
 	},
 }
 
