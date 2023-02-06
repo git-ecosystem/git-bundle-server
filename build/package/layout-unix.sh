@@ -12,6 +12,10 @@ case "$i" in
 	BINDIR="${i#*=}"
 	shift # past argument=value
 	;;
+	--uninstaller=*)
+	UNINSTALLER="${i#*=}"
+	shift # past argument=value
+	;;
 	--include-symlinks)
 	INCLUDE_SYMLINKS=1
 	shift # past argument
@@ -50,6 +54,12 @@ mkdir -p "$INSTALL_TO"
 # Copy built binaries
 echo "Copying binaries..."
 cp -R "$BINDIR/." "$INSTALL_TO/bin"
+
+# Copy uninstaller script
+if [ -n "$UNINSTALLER" ]; then
+	echo "Copying uninstall script..."
+	cp "$UNINSTALLER" "$INSTALL_TO"
+fi
 
 # Create symlinks
 if [ -n "$INCLUDE_SYMLINKS" ]; then

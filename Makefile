@@ -68,6 +68,35 @@ $(DEB_FILENAME): check-version $(DEBDIR)/root
 .PHONY: package
 package: $(DEB_FILENAME)
 
+else ifeq ($(GOOS),darwin)
+# MacOS .pkg file
+# Steps:
+#   1. Layout files in _dist/pkg/payload/ as they'll be installed (including
+#      uninstall.sh script).
+#   2. Create the product archive in _dist/.
+
+# Platform-specific variables
+PKGDIR := $(DISTDIR)/pkg
+PKG_FILENAME := $(DISTDIR)/$(NAME)_$(VERSION)-$(PACKAGE_REVISION)_$(PACKAGE_ARCH).pkg
+
+# Targets
+$(PKGDIR)/payload: check-arch build
+	@echo
+	@echo "======== Formatting package contents ========"
+	@build/package/layout-unix.sh --bindir="$(BINDIR)" \
+				      --uninstaller="$(CURDIR)/build/package/pkg/uninstall.sh" \
+				      --output="$(PKGDIR)/payload"
+
+$(PKG_FILENAME): check-version $(PKGDIR)/payload
+	@echo
+	@echo "======== Creating product archive package ========"
+	@build/package/pkg/pack.sh --version="$(VERSION)" \
+				   --payload="$(PKGDIR)/payload" \
+				   --output="$(PKG_FILENAME)"
+
+.PHONY: package
+package: $(PKG_FILENAME)
+
 else
 # Packaging not supported for platform, exit with error.
 .PHONY: package

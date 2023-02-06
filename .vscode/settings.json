@@ -24,6 +24,7 @@
         "*.md": "markdown",
         "*.sh": "shellscript",
         "prerm": "shellscript",
+        "postinstall": "shellscript",
         "Makefile": "makefile"
     }
 }
