@@ -6,7 +6,24 @@
         "editor.wordWrap": "off",
         "files.trimTrailingWhitespace": true,
     },
+    "[makefile]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": false,
+        "editor.tabSize": 8,
+        "editor.wordWrap": "off",
+        "files.trimTrailingWhitespace": true,
+    },
+    "[shellscript]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": false,
+        "editor.tabSize": 8,
+        "editor.wordWrap": "off",
+        "files.trimTrailingWhitespace": true,
+    },
     "files.associations": {
-        "*.md": "markdown"
+        "*.md": "markdown",
+        "*.sh": "shellscript",
+        "prerm": "shellscript",
+        "Makefile": "makefile"
     }
 }
