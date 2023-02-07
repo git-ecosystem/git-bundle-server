@@ -11,10 +11,12 @@ jobs:
     name: Prerequisites
     runs-on: ubuntu-latest
     outputs:
+      tag_name: ${{ steps.tag.outputs.name }}           # The full name of the tag, e.g. v1.0.0
       tag_version: ${{ steps.tag.outputs.version }}     # The version number (without preceding "v"), e.g. 1.0.0
     steps:
       - name: Determine tag to build
         run: |
+          echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
         id: tag
 
@@ -67,3 +69,70 @@ jobs:
           name: ${{env.artifactName}}
           path: ${{github.workspace}}/${{env.artifactPath}}
           if-no-files-found: error
+
+  create-github-release:
+    needs: [prereqs, package]
+    name: Create release with artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts-raw
+      - name: Consolidate artifact directory
+        shell: bash
+        run: |
+          # This step is needed to extract the artifacts from their wrapper
+          # parent directories. For more details, see
+          # https://github.com/actions/download-artifact#download-all-artifacts
+          mkdir artifacts
+          mv artifacts-raw/*/* artifacts/
+      - name: Create release & attach artifacts
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            var releaseMetadata = {
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            };
+
+            // Create the release
+            var tagName = "${{ needs.prereqs.outputs.tag_name }}";
+            var createdRelease = await github.rest.repos.createRelease({
+              ...releaseMetadata,
+              draft: true,
+              tag_name: tagName,
+              name: tagName,
+              generate_release_notes: true
+            });
+            releaseMetadata.release_id = createdRelease.data.id;
+
+            // Upload contents of directory to the release created above
+            async function uploadDirectoryToRelease(directory, includeExtensions=[]) {
+              return fs.promises.readdir(directory)
+                .then(async(files) => Promise.all(
+                  files.filter(file => {
+                    return includeExtensions.length==0 || includeExtensions.includes(path.extname(file).toLowerCase());
+                  })
+                  .map(async (file) => {
+                    var filePath = path.join(directory, file);
+                    return github.rest.repos.uploadReleaseAsset({
+                      ...releaseMetadata,
+                      name: file,
+                      headers: {
+                        "content-length": (await fs.promises.stat(filePath)).size
+                      },
+                      data: fs.createReadStream(filePath)
+                    });
+                  }))
+                );
+            }
+
+            await Promise.all([
+              // Upload all artifacts
+              uploadDirectoryToRelease('artifacts', ['.pkg', '.deb'])
+            ]);
+
