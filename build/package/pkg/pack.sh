@@ -11,6 +11,9 @@ THISDIR="$( cd "$(dirname "$0")" ; pwd -P )"
 IDENTIFIER="com.github.gitbundleserver"
 INSTALL_LOCATION="/usr/local/git-bundle-server"
 
+# Defaults
+IDENTITY=
+
 # Parse script arguments
 for i in "$@"
 do
@@ -21,6 +24,10 @@ case "$i" in
 	;;
 	--payload=*)
 	PAYLOAD="${i#*=}"
+	shift # past argument=value
+	;;
+	--identity=*)
+	IDENTITY="${i#*=}"
 	shift # past argument=value
 	;;
 	--output=*)
@@ -59,7 +66,7 @@ fi
 mkdir -p "$(dirname "$PKGOUT")"
 
 # Build the component package
-PKGTMP="$PKGOUT.tmp"
+PKGTMP="$PKGOUT.component"
 
 # Remove any unwanted .DS_Store files
 echo "Removing unnecessary files..."
@@ -91,6 +98,7 @@ echo "Building product package..."
 	--package "$PKGTMP" \
 	--identifier "$IDENTIFIER" \
 	--version "$VERSION" \
+	${IDENTITY:+"--sign"} ${IDENTITY:+"$IDENTITY"} \
 	"$PKGOUT"
 
 echo "Product build complete."
