@@ -51,14 +51,15 @@ func (p *plist) addKeyValue(key string, value any) {
 	}
 }
 
-const domainFormat string = "gui/%s"
+const domainFormat string = "user/%s"
 
 const LaunchdServiceNotFoundErrorCode int = 113
 
 type launchdConfig struct {
 	DaemonConfig
-	StdOut string
-	StdErr string
+	LimitLoadToSessionType string
+	StdOut                 string
+	StdErr                 string
 }
 
 func (c *launchdConfig) toPlist() *plist {
@@ -68,6 +69,7 @@ func (c *launchdConfig) toPlist() *plist {
 	}
 	p.addKeyValue("Label", c.Label)
 	p.addKeyValue("Program", c.Program)
+	p.addKeyValue("LimitLoadToSessionType", c.LimitLoadToSessionType)
 	p.addKeyValue("StandardOutPath", c.StdOut)
 	p.addKeyValue("StandardErrorPath", c.StdErr)
 
@@ -152,9 +154,10 @@ func (l *launchd) bootoutFile(domain string, filename string) error {
 func (l *launchd) Create(config *DaemonConfig, force bool) error {
 	// Add launchd-specific config
 	lConfig := &launchdConfig{
-		DaemonConfig: *config,
-		StdOut:       "/dev/null",
-		StdErr:       "/dev/null",
+		DaemonConfig:           *config,
+		LimitLoadToSessionType: "Background",
+		StdOut:                 "/dev/null",
+		StdErr:                 "/dev/null",
 	}
 
 	// Generate the configuration

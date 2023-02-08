@@ -124,6 +124,9 @@ var launchdCreatePlistTests = []struct {
 			"<key>Program</key>",
 			fmt.Sprintf("<string>%s</string>", basicDaemonConfig.Program),
 
+			"<key>LimitLoadToSessionType</key>",
+			"<string>Background</string>",
+
 			"<key>StandardOutPath</key>",
 			"<string>/dev/null</string>",
 
@@ -161,6 +164,9 @@ var launchdCreatePlistTests = []struct {
 			"<key>Program</key>",
 			"<string>/path/to/the/program with a space</string>",
 
+			"<key>LimitLoadToSessionType</key>",
+			"<string>Background</string>",
+
 			"<key>StandardOutPath</key>",
 			"<string>/dev/null</string>",
 
@@ -194,6 +200,9 @@ var launchdCreatePlistTests = []struct {
 
 			"<key>Program</key>",
 			"<string>/path/to/the/program</string>",
+
+			"<key>LimitLoadToSessionType</key>",
+			"<string>Background</string>",
 
 			"<key>StandardOutPath</key>",
 			"<string>/dev/null</string>",
@@ -359,7 +368,7 @@ func TestLaunchd_Start(t *testing.T) {
 	t.Run("Calls correct launchctl command", func(t *testing.T) {
 		testCommandExecutor.On("Run",
 			"launchctl",
-			[]string{"kickstart", fmt.Sprintf("gui/123/%s", basicDaemonConfig.Label)},
+			[]string{"kickstart", fmt.Sprintf("user/123/%s", basicDaemonConfig.Label)},
 		).Return(0, nil).Once()
 
 		err := launchd.Start(basicDaemonConfig.Label)
@@ -400,7 +409,7 @@ func TestLaunchd_Stop(t *testing.T) {
 	t.Run("Calls correct launchctl command", func(t *testing.T) {
 		testCommandExecutor.On("Run",
 			"launchctl",
-			[]string{"kill", "SIGINT", fmt.Sprintf("gui/123/%s", basicDaemonConfig.Label)},
+			[]string{"kill", "SIGINT", fmt.Sprintf("user/123/%s", basicDaemonConfig.Label)},
 		).Return(0, nil).Once()
 
 		err := launchd.Stop(basicDaemonConfig.Label)
