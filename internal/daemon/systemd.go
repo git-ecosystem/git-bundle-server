@@ -18,6 +18,8 @@ Type=simple
 ExecStart={{sq_escape .Program}}{{range .Arguments}} {{sq_escape .}}{{end}}
 `
 
+const SystemdUnitNotInstalledErrorCode int = 5
+
 type systemd struct {
 	user       common.UserProvider
 	cmdExec    common.CommandExecutor
@@ -107,7 +109,7 @@ func (s *systemd) Stop(label string) error {
 		return err
 	}
 
-	if exitCode != 0 {
+	if exitCode != 0 && exitCode != SystemdUnitNotInstalledErrorCode {
 		return fmt.Errorf("'systemctl stop' exited with status %d", exitCode)
 	}
 

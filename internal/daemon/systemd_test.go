@@ -313,4 +313,19 @@ func TestSystemd_Stop(t *testing.T) {
 		assert.NotNil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
+
+	// Reset the mock structure between tests
+	testCommandExecutor.Mock = mock.Mock{}
+
+	// Test #3: service unit not found still succeeds
+	t.Run("Succeeds if service unit not installed", func(t *testing.T) {
+		testCommandExecutor.On("Run",
+			mock.AnythingOfType("string"),
+			mock.AnythingOfType("[]string"),
+		).Return(daemon.SystemdUnitNotInstalledErrorCode, nil).Once()
+
+		err := systemd.Stop(basicDaemonConfig.Label)
+		assert.Nil(t, err)
+		mock.AssertExpectationsForObjects(t, testCommandExecutor)
+	})
 }
