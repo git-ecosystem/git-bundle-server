@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+# Stop & cleanup the web server as the logged-in user
+# The XDG_RUNTIME_DIR is required for 'systemctl' to work, so we manually set it
+# to that of the logged-in user.
+LOGGED_IN_USER="${SUDO_USER:-${USER}}"
+LOGGED_IN_UID="$(sudo -u $LOGGED_IN_USER id -u)"
+sudo -u $LOGGED_IN_USER XDG_RUNTIME_DIR=/run/user/$LOGGED_IN_UID \
+	/usr/local/git-bundle-server/bin/git-bundle-server web-server stop --remove
+
+exit 0

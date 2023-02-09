@@ -70,7 +70,7 @@ func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
 	}
 
 	return &daemon.DaemonConfig{
-		Label:       "com.github.bundleserver",
+		Label:       "com.github.gitbundleserver",
 		Description: "Web server hosting Git Bundle Server content",
 		Program:     programPath,
 	}, nil
@@ -81,7 +81,7 @@ func (w *webServer) startServer(args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server web-server start [-f|--force]")
 
 	// Args for 'git-bundle-server web-server start'
-	force := parser.Bool("force", false, "Whether to force reconfiguration of the web server daemon")
+	force := parser.Bool("force", false, "Force reconfiguration of the web server daemon")
 	parser.BoolVar(force, "f", false, "Alias of --force")
 
 	// Arguments passed through to 'git-bundle-web-server'
@@ -145,7 +145,8 @@ func (w *webServer) startServer(args []string) error {
 
 func (w *webServer) stopServer(args []string) error {
 	// Parse subcommand arguments
-	parser := argparse.NewArgParser("git-bundle-server web-server stop")
+	parser := argparse.NewArgParser("git-bundle-server web-server stop [--remove]")
+	remove := parser.Bool("remove", false, "Remove the web server daemon configuration from the system after stopping")
 	parser.Parse(args)
 
 	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
@@ -161,6 +162,13 @@ func (w *webServer) stopServer(args []string) error {
 	err = d.Stop(config.Label)
 	if err != nil {
 		return err
+	}
+
+	if *remove {
+		err = d.Remove(config.Label)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

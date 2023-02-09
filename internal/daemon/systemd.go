@@ -18,6 +18,8 @@ Type=simple
 ExecStart={{sq_escape .Program}}{{range .Arguments}} {{sq_escape .}}{{end}}
 `
 
+const SystemdUnitNotInstalledErrorCode int = 5
+
 type systemd struct {
 	user       common.UserProvider
 	cmdExec    common.CommandExecutor
@@ -34,6 +36,19 @@ func NewSystemdProvider(
 		cmdExec:    c,
 		fileSystem: fs,
 	}
+}
+
+func (s *systemd) reloadDaemon() error {
+	exitCode, err := s.cmdExec.Run("systemctl", "--user", "daemon-reload")
+	if err != nil {
+		return err
+	}
+
+	if exitCode != 0 {
+		return fmt.Errorf("'systemctl --user daemon-reload' exited with status %d", exitCode)
+	}
+
+	return nil
 }
 
 func (s *systemd) Create(config *DaemonConfig, force bool) error {
@@ -73,14 +88,10 @@ func (s *systemd) Create(config *DaemonConfig, force bool) error {
 		return fmt.Errorf("unable to write service unit: %w", err)
 	}
 
-	// Reload the user-scoped service units
-	exitCode, err := s.cmdExec.Run("systemctl", "--user", "daemon-reload")
+	// Reload the user-scoped service units after adding
+	err = s.reloadDaemon()
 	if err != nil {
 		return err
-	}
-
-	if exitCode != 0 {
-		return fmt.Errorf("'systemctl --user daemon-reload' exited with status %d", exitCode)
 	}
 
 	return nil
@@ -107,8 +118,29 @@ func (s *systemd) Stop(label string) error {
 		return err
 	}
 
-	if exitCode != 0 {
+	if exitCode != 0 && exitCode != SystemdUnitNotInstalledErrorCode {
 		return fmt.Errorf("'systemctl stop' exited with status %d", exitCode)
+	}
+
+	return nil
+}
+
+func (s *systemd) Remove(label string) error {
+	user, err := s.user.CurrentUser()
+	if err != nil {
+		return fmt.Errorf("could not get current user for launchd service: %w", err)
+	}
+	filename := filepath.Join(user.HomeDir, ".config", "systemd", "user", fmt.Sprintf("%s.service", label))
+
+	_, err = s.fileSystem.DeleteFile(filename)
+	if err != nil {
+		return fmt.Errorf("could not delete service unit: %w", err)
+	}
+
+	// Reload the user-scoped service units after removing
+	err = s.reloadDaemon()
+	if err != nil {
+		return err
 	}
 
 	return nil

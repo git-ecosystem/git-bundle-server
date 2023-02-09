@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+PACKAGE=$1
+INSTALL_DESTINATION=$2
+
+# Directories
+INSTALL_TO="$INSTALL_DESTINATION/usr/local/git-bundle-server/"
+LINK_TO="$INSTALL_DESTINATION/usr/local/bin/"
+RELATIVE_LINK_TO_INSTALL="../git-bundle-server"
+mkdir -p "$LINK_TO"
+
+# Create symlinks
+for program in "$INSTALL_TO"/bin/*
+do
+	/bin/ln -Fs "$RELATIVE_LINK_TO_INSTALL/bin/$(basename $program)" "$LINK_TO/$(basename $program)"
+done
+
+exit 0

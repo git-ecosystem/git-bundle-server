@@ -38,6 +38,11 @@ func (m *MockFileSystem) WriteFile(filename string, content []byte) error {
 	return fnArgs.Error(0)
 }
 
+func (m *MockFileSystem) DeleteFile(filename string) (bool, error) {
+	fnArgs := m.Called(filename)
+	return fnArgs.Bool(0), fnArgs.Error(1)
+}
+
 func (m *MockFileSystem) ReadFileLines(filename string) ([]string, error) {
 	fnArgs := m.Called(filename)
 	return fnArgs.Get(0).([]string), fnArgs.Error(1)
