@@ -4,6 +4,7 @@
 [codeowners]: CODEOWNERS
 [contributing]: CONTRIBUTING.md
 [license]: LICENSE
+[support]: SUPPORT.md
 
 ## Background
 
@@ -92,3 +93,8 @@ refer to [LICENSE][license] for the full terms.
 ## Maintainers
 
 See [CODEOWNERS][codeowners] for a list of current project maintainers.
+
+## Support
+
+See [SUPPORT][support] for instructions on how to file bugs, feature requests,
+and general questions/requests for help.
