@@ -1,6 +1,7 @@
 # `git-bundle-server`: Manage a self-hosted bundle server
 
 [bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
+[codeowners]: CODEOWNERS
 [contributing]: CONTRIBUTING.md
 [license]: LICENSE
 
@@ -87,3 +88,7 @@ for debugging purposes, then you can run `git-bundle-web-server`.
 
 This project is licensed under the terms of the MIT open source license. Please
 refer to [LICENSE][license] for the full terms.
+
+## Maintainers
+
+See [CODEOWNERS][codeowners] for a list of current project maintainers.
