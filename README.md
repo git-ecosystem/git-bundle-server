@@ -1,9 +1,19 @@
 # `git-bundle-server`: Manage a self-hosted bundle server
 
+[bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
+[codeowners]: CODEOWNERS
+[contributing]: CONTRIBUTING.md
+[license]: LICENSE
+[support]: SUPPORT.md
+
+## Background
+
 By running this software, you can self-host a bundle server to work with Git's
 [bundle URI feature][bundle-uris].
 
-[bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
+This repository is under active development, and loves contributions from the
+community :heart:. Check out [CONTRIBUTING][contributing] for details on getting
+started.
 
 ## Cloning and Building
 
@@ -15,6 +25,14 @@ executables with
 ```ShellSession
 $ go build -o . ./...
 ```
+
+## Testing and Linting
+
+To run the project's unit tests, navigate to the repository root directory and
+run `go test -v ./...`.
+
+To run the project's linter, navigate to the repository root directory and run
+`go vet ./...`.
 
 ## Bundle Management through CLI
 
@@ -66,3 +84,17 @@ server, you can manage the web server process itself using these commands:
 
 Finally, if you want to run the web server process directly in your terminal,
 for debugging purposes, then you can run `git-bundle-web-server`.
+
+## License
+
+This project is licensed under the terms of the MIT open source license. Please
+refer to [LICENSE][license] for the full terms.
+
+## Maintainers
+
+See [CODEOWNERS][codeowners] for a list of current project maintainers.
+
+## Support
+
+See [SUPPORT][support] for instructions on how to file bugs, feature requests,
+and general questions/requests for help.
