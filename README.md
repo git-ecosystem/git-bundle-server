@@ -1,4 +1,4 @@
-# `git-bundle-server`: Manage a self-hosted bundle server
+# Git Bundle Server
 
 [bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
 [codeowners]: CODEOWNERS
@@ -15,26 +15,86 @@ This repository is under active development, and loves contributions from the
 community :heart:. Check out [CONTRIBUTING][contributing] for details on getting
 started.
 
-## Cloning and Building
+## Getting Started
 
-Be sure to clone inside the `src` directory of your `GOROOT`.
+### Installing
 
-Once there, you can build the `git-bundle-server` and `git-bundle-web-server`
-executables with
+> :warning: Installation on Windows is currently unsupported :warning:
 
-```ShellSession
-$ go build -o . ./...
+<!-- Common sources -->
+[releases]: https://github.com/github/git-bundle-server/releases
+
+#### Linux
+
+Debian packages (for x86_64 systems) can be downloaded from the
+[Releases][releases] page and installed with:
+
+```bash
+sudo dpkg -i /path/to/git-bundle-server_VVV-RRR_amd64.deb
+
+# VVV: version
+# RRR: package revision
 ```
 
-## Testing and Linting
+#### MacOS
 
-To run the project's unit tests, navigate to the repository root directory and
-run `go test -v ./...`.
+Packages for both Intel and M1 systems can be downloaded from the
+[Releases][releases] page (identified by the `amd64` vs `arm64` filename suffix,
+respectively). The package can be installed by double-clicking the downloaded
+file, or on the command line with:
 
-To run the project's linter, navigate to the repository root directory and run
-`go vet ./...`.
+```bash
+sudo installer -pkg /path/to/git-bundle-server_VVV-RRR_AAA.pkg -target /
 
-## Bundle Management through CLI
+# VVV: version
+# RRR: package revision
+# AAA: platform architecture (amd64 or arm64)
+```
+
+#### From source
+
+> To avoid environment issues building and executing Go code, we recommend that
+> you clone inside the `src` directory of your `GOROOT`.
+
+You can also install the bundle server application from source on any Unix-based
+system. To install to the system root, clone the repository and run:
+
+```ShellSession
+$ make install
+```
+
+Note that you will likely be prompted for a password to allow installing to
+root-owned directories (e.g. `/usr/local/bin`).
+
+To install somewhere other than the system root, you can manually specify an
+`INSTALL_ROOT` when building the `install` target:
+
+```ShellSession
+$ make install INSTALL_ROOT=</your/install/root>
+```
+
+### Uninstalling
+
+#### From Debian package
+
+To uninstall `git-bundle-server` if it was installed from a Debian package, run:
+
+```ShellSession
+$ sudo dpkg -r git-bundle-server
+```
+
+#### Everything else
+
+All other installation methods include an executable script that uninstalls all
+bundle server resources. On MacOS & Linux, run:
+
+```ShellSession
+$ /usr/local/git-bundle-server/uninstall.sh
+```
+
+## Usage
+
+### Repository management
 
 The following command-line interface allows you to manage which repositories are
 being managed by the bundle server.
@@ -73,7 +133,7 @@ being managed by the bundle server.
 * `git-bundle-server delete <route>`: Remove the configuration for the given
   `<route>` and delete its repository data.
 
-## Web Server Management
+### Web server management
 
 Independent of the management of the individual repositories hosted by the
 server, you can manage the web server process itself using these commands:
@@ -84,6 +144,37 @@ server, you can manage the web server process itself using these commands:
 
 Finally, if you want to run the web server process directly in your terminal,
 for debugging purposes, then you can run `git-bundle-web-server`.
+
+## Local development
+
+### Building
+
+> To avoid environment issues building and executing Go code, we recommend that
+> you clone inside the `src` directory of your `GOROOT`.
+
+In the root of your cloned repository, you can build the `git-bundle-server` and
+`git-bundle-web-server` executables a few ways.
+
+The first is to use GNU Make; from the root of the repository, simply run:
+
+```ShellSession
+$ make
+```
+
+If you do not have `make` installed on your system, you may instead run (again
+from the repository root):
+
+```ShellSession
+$ go build -o bin/ ./...
+```
+
+### Testing and Linting
+
+To run the project's unit tests, navigate to the repository root directory and
+run `go test -v ./...`.
+
+To run the project's linter, navigate to the repository root directory and run
+`go vet ./...`.
 
 ## License
 
