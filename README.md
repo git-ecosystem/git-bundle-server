@@ -1,9 +1,12 @@
 # `git-bundle-server`: Manage a self-hosted bundle server
 
+[bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
+[license]: LICENSE
+
+## Background
+
 By running this software, you can self-host a bundle server to work with Git's
 [bundle URI feature][bundle-uris].
-
-[bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
 
 ## Cloning and Building
 
@@ -66,3 +69,8 @@ server, you can manage the web server process itself using these commands:
 
 Finally, if you want to run the web server process directly in your terminal,
 for debugging purposes, then you can run `git-bundle-web-server`.
+
+## License
+
+This project is licensed under the terms of the MIT open source license. Please
+refer to [LICENSE][license] for the full terms.
