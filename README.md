@@ -1,12 +1,17 @@
 # `git-bundle-server`: Manage a self-hosted bundle server
 
 [bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
+[contributing]: CONTRIBUTING.md
 [license]: LICENSE
 
 ## Background
 
 By running this software, you can self-host a bundle server to work with Git's
 [bundle URI feature][bundle-uris].
+
+This repository is under active development, and loves contributions from the
+community :heart:. Check out [CONTRIBUTING][contributing] for details on getting
+started.
 
 ## Cloning and Building
 
@@ -18,6 +23,14 @@ executables with
 ```ShellSession
 $ go build -o . ./...
 ```
+
+## Testing and Linting
+
+To run the project's unit tests, navigate to the repository root directory and
+run `go test -v ./...`.
+
+To run the project's linter, navigate to the repository root directory and run
+`go vet ./...`.
 
 ## Bundle Management through CLI
 
