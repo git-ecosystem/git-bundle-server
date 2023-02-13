@@ -48,28 +48,31 @@ if [ -d "$PAYLOAD" ]; then
 fi
 
 # Ensure payload directory exists
-INSTALL_TO="$PAYLOAD/usr/local/git-bundle-server"
-mkdir -p "$INSTALL_TO"
+APP_ROOT="$PAYLOAD/usr/local/git-bundle-server"
+mkdir -p "$APP_ROOT"
 
 # Copy built binaries
 echo "Copying binaries..."
-cp -R "$BINDIR/." "$INSTALL_TO/bin"
+cp -R "$BINDIR/." "$APP_ROOT/bin"
 
 # Copy uninstaller script
 if [ -n "$UNINSTALLER" ]; then
 	echo "Copying uninstall script..."
-	cp "$UNINSTALLER" "$INSTALL_TO"
+	cp "$UNINSTALLER" "$APP_ROOT"
 fi
 
 # Create symlinks
 if [ -n "$INCLUDE_SYMLINKS" ]; then
 	LINK_TO="$PAYLOAD/usr/local/bin"
+	RELATIVE_LINK_TO_BIN="../git-bundle-server/bin"
 	mkdir -p "$LINK_TO"
 
-	echo "Creating symlinks..."
-	for program in "$INSTALL_TO"/bin/*
+	echo "Creating binary symlinks..."
+	for program in "$APP_ROOT"/bin/*
 	do
-		ln -s -r "$program" "$LINK_TO/$(basename $program)"
+		p=$(basename "$program")
+		rm -f "$LINK_TO/$p"
+		ln -s "$RELATIVE_LINK_TO_BIN/$p" "$LINK_TO/$p"
 	done
 fi
 
