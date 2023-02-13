@@ -6,6 +6,9 @@ NAME := git-bundle-server
 VERSION :=
 PACKAGE_REVISION := 1
 
+# Installation information
+INSTALL_ROOT := /
+
 # Helpful paths
 BINDIR := $(CURDIR)/bin
 DISTDIR := $(CURDIR)/_dist
@@ -24,6 +27,17 @@ build:
 	$(RM) -r $(BINDIR)
 	@mkdir -p $(BINDIR)
 	GOOS="$(GOOS)" GOARCH="$(GOARCH)" go build -o $(BINDIR) ./...
+
+# Installation targets
+.PHONY: install
+install: build
+	@echo
+	@echo "======== Installing to $(INSTALL_ROOT) ========"
+	@scripts/install.sh --bindir="$(BINDIR)" \
+			    --uninstaller="$(CURDIR)/scripts/uninstall.sh" \
+			    --allow-root \
+			    --include-symlinks \
+			    --install-root="$(INSTALL_ROOT)"
 
 # Packaging targets
 .PHONY: check-arch
@@ -52,9 +66,9 @@ DEB_FILENAME := $(DISTDIR)/$(NAME)_$(VERSION)-$(PACKAGE_REVISION)_$(PACKAGE_ARCH
 $(DEBDIR)/root: check-arch build
 	@echo
 	@echo "======== Formatting package contents ========"
-	@build/package/layout-unix.sh --bindir="$(BINDIR)" \
-				      --include-symlinks \
-				      --output="$(DEBDIR)/root"
+	@scripts/install.sh --bindir="$(BINDIR)" \
+			    --include-symlinks \
+			    --install-root="$(DEBDIR)/root"
 
 $(DEB_FILENAME): check-version $(DEBDIR)/root
 	@echo
@@ -83,9 +97,9 @@ PKG_FILENAME := $(DISTDIR)/$(NAME)_$(VERSION)-$(PACKAGE_REVISION)_$(PACKAGE_ARCH
 $(PKGDIR)/payload: check-arch build
 	@echo
 	@echo "======== Formatting package contents ========"
-	@build/package/layout-unix.sh --bindir="$(BINDIR)" \
-				      --uninstaller="$(CURDIR)/scripts/uninstall.sh" \
-				      --output="$(PKGDIR)/payload"
+	@scripts/install.sh --bindir="$(BINDIR)" \
+			    --uninstaller="$(CURDIR)/scripts/uninstall.sh" \
+			    --install-root="$(PKGDIR)/payload"
 
 $(PKG_FILENAME): check-version $(PKGDIR)/payload
 	@echo

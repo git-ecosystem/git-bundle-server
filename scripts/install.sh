@@ -4,6 +4,19 @@ die () {
 	exit 1
 }
 
+# Setup root escalation operation
+SUDO=""
+retry_root () {
+	if [ -n "$SUDO" ]
+	then
+		# run as user, then with 'sudo'
+		$@ 2>/dev/null || "$SUDO" $@
+	else
+		# passthrough
+		$@
+	fi
+}
+
 # Parse script arguments
 for i in "$@"
 do
@@ -16,12 +29,16 @@ case "$i" in
 	UNINSTALLER="${i#*=}"
 	shift # past argument=value
 	;;
+	--allow-root)
+	SUDO=$(if command -v sudo >/dev/null 2>&1; then echo sudo; fi)
+	shift # past argument
+	;;
 	--include-symlinks)
 	INCLUDE_SYMLINKS=1
 	shift # past argument
 	;;
-	--output=*)
-	PAYLOAD="${i#*=}"
+	--install-root=*)
+	INSTALL_ROOT="${i#*=}"
 	shift # past argument=value
 	;;
 	*)
@@ -34,46 +51,43 @@ done
 if [ -z "$BINDIR" ]; then
 	die "--bindir was not set"
 fi
-if [ -z "$PAYLOAD" ]; then
-	die "--output was not set"
+if [ -z "$INSTALL_ROOT" ]; then
+	die "--install-root was not set"
+fi
+
+if [ "$INSTALL_ROOT" == "/" ]; then
+	# Reset $INSTALL_ROOT to empty string to avoid double leading slash
+	INSTALL_ROOT=""
 fi
 
 # Exit as soon as any line fails
 set -e
 
-# Cleanup any old payload directory
-if [ -d "$PAYLOAD" ]; then
-	echo "Cleaning old output directory '$PAYLOAD'..."
-	rm -rf "$PAYLOAD"
-fi
-
 # Ensure payload directory exists
-APP_ROOT="$PAYLOAD/usr/local/git-bundle-server"
-mkdir -p "$APP_ROOT"
+APP_ROOT="$INSTALL_ROOT/usr/local/git-bundle-server"
+retry_root mkdir -p "$APP_ROOT"
 
 # Copy built binaries
 echo "Copying binaries..."
-cp -R "$BINDIR/." "$APP_ROOT/bin"
+retry_root cp -R "$BINDIR/." "$APP_ROOT/bin"
 
 # Copy uninstaller script
 if [ -n "$UNINSTALLER" ]; then
 	echo "Copying uninstall script..."
-	cp "$UNINSTALLER" "$APP_ROOT"
+	retry_root cp "$UNINSTALLER" "$APP_ROOT"
 fi
 
 # Create symlinks
 if [ -n "$INCLUDE_SYMLINKS" ]; then
-	LINK_TO="$PAYLOAD/usr/local/bin"
+	LINK_TO="$INSTALL_ROOT/usr/local/bin"
 	RELATIVE_LINK_TO_BIN="../git-bundle-server/bin"
-	mkdir -p "$LINK_TO"
+	retry_root mkdir -p "$LINK_TO"
 
 	echo "Creating binary symlinks..."
 	for program in "$APP_ROOT"/bin/*
 	do
 		p=$(basename "$program")
-		rm -f "$LINK_TO/$p"
-		ln -s "$RELATIVE_LINK_TO_BIN/$p" "$LINK_TO/$p"
+		retry_root rm -f "$LINK_TO/$p"
+		retry_root ln -s "$RELATIVE_LINK_TO_BIN/$p" "$LINK_TO/$p"
 	done
 fi
-
-echo "Layout complete."
