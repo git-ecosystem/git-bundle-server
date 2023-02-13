@@ -25,6 +25,10 @@ case "$i" in
 	BINDIR="${i#*=}"
 	shift # past argument=value
 	;;
+	--docdir=*)
+	DOCDIR="${i#*=}"
+	shift # past argument=value
+	;;
 	--uninstaller=*)
 	UNINSTALLER="${i#*=}"
 	shift # past argument=value
@@ -51,6 +55,9 @@ done
 if [ -z "$BINDIR" ]; then
 	die "--bindir was not set"
 fi
+if [ -z "$DOCDIR" ]; then
+	die "--docdir was not set"
+fi
 if [ -z "$INSTALL_ROOT" ]; then
 	die "--install-root was not set"
 fi
@@ -71,6 +78,14 @@ retry_root mkdir -p "$APP_ROOT"
 echo "Copying binaries..."
 retry_root cp -R "$BINDIR/." "$APP_ROOT/bin"
 
+echo "Copying manpages..."
+for N in $(find "$DOCDIR" -type f | sed -e 's/.*\.//' | sort -u)
+do
+	retry_root mkdir -p "$APP_ROOT/share/man/man$N"
+	retry_root cp -R "$DOCDIR/"*."$N" "$APP_ROOT/share/man/man$N"
+
+done
+
 # Copy uninstaller script
 if [ -n "$UNINSTALLER" ]; then
 	echo "Copying uninstall script..."
@@ -89,5 +104,21 @@ if [ -n "$INCLUDE_SYMLINKS" ]; then
 		p=$(basename "$program")
 		retry_root rm -f "$LINK_TO/$p"
 		retry_root ln -s "$RELATIVE_LINK_TO_BIN/$p" "$LINK_TO/$p"
+	done
+
+	echo "Creating manpage symlinks..."
+	for mandir in "$APP_ROOT"/share/man/man*/
+	do
+		mdir=$(basename "$mandir")
+		LINK_TO="$INSTALL_ROOT/usr/local/share/man/$mdir"
+		RELATIVE_LINK_TO_MAN="../../../git-bundle-server/share/man/$mdir"
+		retry_root mkdir -p "$LINK_TO"
+
+		for manpage in "$mandir"/*
+		do
+			mpage=$(basename "$manpage")
+			retry_root rm -f "$LINK_TO/$mpage"
+			retry_root ln -s "$RELATIVE_LINK_TO_MAN/$mpage" "$LINK_TO/$mpage"
+		done
 	done
 fi

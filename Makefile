@@ -12,6 +12,7 @@ INSTALL_ROOT := /
 # Helpful paths
 BINDIR := $(CURDIR)/bin
 DISTDIR := $(CURDIR)/_dist
+DOCDIR := $(CURDIR)/_docs
 
 # Platform information
 GOOS := $(shell go env GOOS)
@@ -28,12 +29,18 @@ build:
 	@mkdir -p $(BINDIR)
 	GOOS="$(GOOS)" GOARCH="$(GOARCH)" go build -o $(BINDIR) ./...
 
+.PHONY: doc
+doc:
+	@scripts/make-docs.sh --docs="$(CURDIR)/docs/man" \
+			      --output="$(DOCDIR)"
+
 # Installation targets
 .PHONY: install
-install: build
+install: build doc
 	@echo
 	@echo "======== Installing to $(INSTALL_ROOT) ========"
 	@scripts/install.sh --bindir="$(BINDIR)" \
+			    --docdir="$(DOCDIR)" \
 			    --uninstaller="$(CURDIR)/scripts/uninstall.sh" \
 			    --allow-root \
 			    --include-symlinks \
@@ -63,10 +70,11 @@ DEBDIR := $(DISTDIR)/deb
 DEB_FILENAME := $(DISTDIR)/$(NAME)_$(VERSION)-$(PACKAGE_REVISION)_$(PACKAGE_ARCH).deb
 
 # Targets
-$(DEBDIR)/root: check-arch build
+$(DEBDIR)/root: check-arch build doc
 	@echo
 	@echo "======== Formatting package contents ========"
 	@scripts/install.sh --bindir="$(BINDIR)" \
+			    --docdir="$(DOCDIR)" \
 			    --include-symlinks \
 			    --install-root="$(DEBDIR)/root"
 
@@ -94,10 +102,11 @@ PKGDIR := $(DISTDIR)/pkg
 PKG_FILENAME := $(DISTDIR)/$(NAME)_$(VERSION)-$(PACKAGE_REVISION)_$(PACKAGE_ARCH).pkg
 
 # Targets
-$(PKGDIR)/payload: check-arch build
+$(PKGDIR)/payload: check-arch build doc
 	@echo
 	@echo "======== Formatting package contents ========"
 	@scripts/install.sh --bindir="$(BINDIR)" \
+			    --docdir="$(DOCDIR)" \
 			    --uninstaller="$(CURDIR)/scripts/uninstall.sh" \
 			    --install-root="$(PKGDIR)/payload"
 
@@ -125,3 +134,4 @@ clean:
 	go clean ./...
 	$(RM) -r $(BINDIR)
 	$(RM) -r $(DISTDIR)
+	$(RM) -r $(DOCDIR)

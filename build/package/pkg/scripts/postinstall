@@ -18,4 +18,19 @@ do
 	ln -s "$RELATIVE_LINK_TO_BIN/$p" "$LINK_TO/$p"
 done
 
+for mandir in "$APP_ROOT"/share/man/man*/
+do
+	mdir=$(basename "$mandir")
+	LINK_TO="$INSTALL_DESTINATION/usr/local/share/man/$mdir"
+	RELATIVE_LINK_TO_MAN="../../../git-bundle-server/share/man/$mdir"
+	mkdir -p "$LINK_TO"
+
+	for manpage in "$mandir"/*
+	do
+		mpage=$(basename "$manpage")
+		rm -f "$LINK_TO/$mpage"
+		ln -s "$RELATIVE_LINK_TO_MAN/$mpage" "$LINK_TO/$mpage"
+	done
+done
+
 exit 0
