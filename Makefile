@@ -84,7 +84,7 @@ $(PKGDIR)/payload: check-arch build
 	@echo
 	@echo "======== Formatting package contents ========"
 	@build/package/layout-unix.sh --bindir="$(BINDIR)" \
-				      --uninstaller="$(CURDIR)/build/package/pkg/uninstall.sh" \
+				      --uninstaller="$(CURDIR)/scripts/uninstall.sh" \
 				      --output="$(PKGDIR)/payload"
 
 $(PKG_FILENAME): check-version $(PKGDIR)/payload
