@@ -63,9 +63,16 @@ func (f *fileSystem) DeleteFile(filename string) (bool, error) {
 }
 
 func (f *fileSystem) ReadFileLines(filename string) ([]string, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0o600)
+	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		pathErr, ok := err.(*os.PathError)
+		if ok && pathErr.Err == syscall.ENOENT {
+			// If the file doesn't exist, return empty result rather than an
+			// error
+			return []string{}, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	var l []string
