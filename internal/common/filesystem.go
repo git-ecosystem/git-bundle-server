@@ -31,6 +31,16 @@ func NewFileSystem() FileSystem {
 	return &fileSystem{}
 }
 
+func (f *fileSystem) createLeadingDirs(filename string) error {
+	parentDir := path.Dir(filename)
+	err := os.MkdirAll(parentDir, DefaultDirPermissions)
+	if err != nil {
+		return fmt.Errorf("error creating parent directories: %w", err)
+	}
+
+	return nil
+}
+
 func (f *fileSystem) GetLocalExecutable(name string) (string, error) {
 	thisExePath, err := os.Executable()
 	if err != nil {
@@ -64,11 +74,9 @@ func (f *fileSystem) FileExists(filename string) (bool, error) {
 }
 
 func (f *fileSystem) WriteFile(filename string, content []byte) error {
-	// Get filename parent path
-	parentDir := path.Dir(filename)
-	err := os.MkdirAll(parentDir, DefaultDirPermissions)
+	err := f.createLeadingDirs(filename)
 	if err != nil {
-		return fmt.Errorf("error creating parent directories: %w", err)
+		return err
 	}
 
 	err = os.WriteFile(filename, content, DefaultFilePermissions)
