@@ -23,7 +23,7 @@ func CreateRepository(route string) (*Repository, error) {
 	fs := common.NewFileSystem()
 	repos, err := GetRepositories(user, fs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse routes file")
+		return nil, fmt.Errorf("failed to parse routes file: %w", err)
 	}
 
 	repo, contains := repos[route]
@@ -63,7 +63,7 @@ func RemoveRoute(route string) error {
 	fs := common.NewFileSystem()
 	repos, err := GetRepositories(user, fs)
 	if err != nil {
-		return fmt.Errorf("failed to parse routes file")
+		return fmt.Errorf("failed to parse routes file: %w", err)
 	}
 
 	_, contains := repos[route]
