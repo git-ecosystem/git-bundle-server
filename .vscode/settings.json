@@ -13,6 +13,13 @@
         "editor.wordWrap": "off",
         "files.trimTrailingWhitespace": true,
     },
+    "[asciidoc]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "editor.wordWrap": "off",
+        "files.trimTrailingWhitespace": true,
+    },
     "[shellscript]": {
         "editor.detectIndentation": false,
         "editor.insertSpaces": false,
@@ -21,6 +28,8 @@
         "files.trimTrailingWhitespace": true,
     },
     "files.associations": {
+        "*.adoc": "asciidoc",
+        "*.asc": "asciidoc",
         "*.md": "markdown",
         "*.sh": "shellscript",
         "prerm": "shellscript",

@@ -392,6 +392,44 @@ func TestLaunchd_Start(t *testing.T) {
 	})
 }
 
+var launchdStopTests = []struct {
+	title string
+
+	// Inputs
+	label string
+
+	// Mocked responses
+	launchctlKill *Pair[int, error]
+
+	// Expected values
+	expectErr bool
+}{
+	{
+		"Running service is stopped successfully",
+		"com.test.service",
+		PtrTo(NewPair[int, error](0, nil)), // launchctl kill
+		false,
+	},
+	{
+		"Stopping service not yet bootstrapped returns no error",
+		"com.test.service",
+		PtrTo(NewPair[int, error](daemon.LaunchdServiceNotFoundErrorCode, nil)), // launchctl kill
+		false,
+	},
+	{
+		"Stopping service not running returns no error",
+		"com.test.service",
+		PtrTo(NewPair[int, error](daemon.LaunchdNoSuchProcessErrorCode, nil)), // launchctl kill
+		false,
+	},
+	{
+		"Unknown launchctl error throws error",
+		"com.test.service",
+		PtrTo(NewPair[int, error](-1, nil)), // launchctl kill
+		true,
+	},
+}
+
 func TestLaunchd_Stop(t *testing.T) {
 	// Set up mocks
 	testUser := &user.User{
@@ -405,47 +443,29 @@ func TestLaunchd_Stop(t *testing.T) {
 
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
 
-	// Test #1: launchctl succeeds
-	t.Run("Calls correct launchctl command", func(t *testing.T) {
-		testCommandExecutor.On("Run",
-			"launchctl",
-			[]string{"kill", "SIGINT", fmt.Sprintf("user/123/%s", basicDaemonConfig.Label)},
-		).Return(0, nil).Once()
+	for _, tt := range launchdStopTests {
+		t.Run(tt.title, func(t *testing.T) {
+			// Mock responses
+			if tt.launchctlKill != nil {
+				testCommandExecutor.On("Run",
+					"launchctl",
+					[]string{"kill", "SIGINT", fmt.Sprintf("user/123/%s", tt.label)},
+				).Return(tt.launchctlKill.First, tt.launchctlKill.Second).Once()
+			}
 
-		err := launchd.Stop(basicDaemonConfig.Label)
-		assert.Nil(t, err)
-		mock.AssertExpectationsForObjects(t, testCommandExecutor)
-	})
+			// Call function
+			err := launchd.Stop(tt.label)
+			mock.AssertExpectationsForObjects(t, testCommandExecutor)
+			if tt.expectErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
 
-	// Reset the mock structure between tests
-	testCommandExecutor.Mock = mock.Mock{}
-
-	// Test #2: launchctl fails with uncaught error
-	t.Run("Returns error when launchctl fails", func(t *testing.T) {
-		testCommandExecutor.On("Run",
-			mock.AnythingOfType("string"),
-			mock.AnythingOfType("[]string"),
-		).Return(1, nil).Once()
-
-		err := launchd.Stop(basicDaemonConfig.Label)
-		assert.NotNil(t, err)
-		mock.AssertExpectationsForObjects(t, testCommandExecutor)
-	})
-
-	// Reset the mock structure between tests
-	testCommandExecutor.Mock = mock.Mock{}
-
-	// Test #3: launchctl fails with expected error
-	t.Run("Exits without error if service not found", func(t *testing.T) {
-		testCommandExecutor.On("Run",
-			mock.AnythingOfType("string"),
-			mock.AnythingOfType("[]string"),
-		).Return(daemon.LaunchdServiceNotFoundErrorCode, nil).Once()
-
-		err := launchd.Stop(basicDaemonConfig.Label)
-		assert.Nil(t, err)
-		mock.AssertExpectationsForObjects(t, testCommandExecutor)
-	})
+		// Reset the mocks between tests
+		testCommandExecutor.Mock = mock.Mock{}
+	}
 }
 
 var launchdRemoveTests = []struct {

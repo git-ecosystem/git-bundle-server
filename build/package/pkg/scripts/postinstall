@@ -5,15 +5,32 @@ PACKAGE=$1
 INSTALL_DESTINATION=$2
 
 # Directories
-INSTALL_TO="$INSTALL_DESTINATION/usr/local/git-bundle-server/"
-LINK_TO="$INSTALL_DESTINATION/usr/local/bin/"
-RELATIVE_LINK_TO_INSTALL="../git-bundle-server"
+APP_ROOT="$INSTALL_DESTINATION/usr/local/git-bundle-server"
+LINK_TO="$INSTALL_DESTINATION/usr/local/bin"
+RELATIVE_LINK_TO_BIN="../git-bundle-server/bin"
 mkdir -p "$LINK_TO"
 
 # Create symlinks
-for program in "$INSTALL_TO"/bin/*
+for program in "$APP_ROOT"/bin/*
 do
-	/bin/ln -Fs "$RELATIVE_LINK_TO_INSTALL/bin/$(basename $program)" "$LINK_TO/$(basename $program)"
+	p=$(basename "$program")
+	rm -f "$LINK_TO/$p"
+	ln -s "$RELATIVE_LINK_TO_BIN/$p" "$LINK_TO/$p"
+done
+
+for mandir in "$APP_ROOT"/share/man/man*/
+do
+	mdir=$(basename "$mandir")
+	LINK_TO="$INSTALL_DESTINATION/usr/local/share/man/$mdir"
+	RELATIVE_LINK_TO_MAN="../../../git-bundle-server/share/man/$mdir"
+	mkdir -p "$LINK_TO"
+
+	for manpage in "$mandir"/*
+	do
+		mpage=$(basename "$manpage")
+		rm -f "$LINK_TO/$mpage"
+		ln -s "$RELATIVE_LINK_TO_MAN/$mpage" "$LINK_TO/$mpage"
+	done
 done
 
 exit 0

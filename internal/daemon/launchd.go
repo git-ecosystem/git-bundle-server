@@ -259,7 +259,9 @@ func (l *launchd) Stop(label string) error {
 	}
 
 	// Don't throw an error if the service hasn't been bootstrapped
-	if exitCode != 0 && exitCode != LaunchdServiceNotFoundErrorCode {
+	if exitCode != 0 &&
+		exitCode != LaunchdServiceNotFoundErrorCode &&
+		exitCode != LaunchdNoSuchProcessErrorCode {
 		return fmt.Errorf("'launchctl kill' exited with status %d", exitCode)
 	}
 
