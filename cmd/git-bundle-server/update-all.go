@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,7 +22,7 @@ func (UpdateAll) Description() string {
 For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
-func (UpdateAll) Run(args []string) error {
+func (UpdateAll) Run(ctx context.Context, args []string) error {
 	user, err := common.NewUserProvider().CurrentUser()
 	if err != nil {
 		return err
@@ -29,7 +30,7 @@ func (UpdateAll) Run(args []string) error {
 	fs := common.NewFileSystem()
 
 	parser := argparse.NewArgParser("git-bundle-server update-all")
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
 	exe, err := os.Executable()
 	if err != nil {

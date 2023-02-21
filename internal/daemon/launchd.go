@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"path/filepath"
@@ -107,7 +108,7 @@ func NewLaunchdProvider(
 	}
 }
 
-func (l *launchd) isBootstrapped(serviceTarget string) (bool, error) {
+func (l *launchd) isBootstrapped(ctx context.Context, serviceTarget string) (bool, error) {
 	// run 'launchctl print' on given service target to see if it exists
 	exitCode, err := l.cmdExec.Run("launchctl", "print", serviceTarget)
 	if err != nil {
@@ -124,7 +125,7 @@ func (l *launchd) isBootstrapped(serviceTarget string) (bool, error) {
 	}
 }
 
-func (l *launchd) bootstrapFile(domain string, filename string) error {
+func (l *launchd) bootstrapFile(ctx context.Context, domain string, filename string) error {
 	// run 'launchctl bootstrap' on given domain & file
 	exitCode, err := l.cmdExec.Run("launchctl", "bootstrap", domain, filename)
 	if err != nil {
@@ -138,7 +139,7 @@ func (l *launchd) bootstrapFile(domain string, filename string) error {
 	return nil
 }
 
-func (l *launchd) bootout(serviceTarget string) (bool, error) {
+func (l *launchd) bootout(ctx context.Context, serviceTarget string) (bool, error) {
 	// run 'launchctl bootout' on given service target
 	exitCode, err := l.cmdExec.Run("launchctl", "bootout", serviceTarget)
 	if err != nil {
@@ -154,7 +155,7 @@ func (l *launchd) bootout(serviceTarget string) (bool, error) {
 	}
 }
 
-func (l *launchd) Create(config *DaemonConfig, force bool) error {
+func (l *launchd) Create(ctx context.Context, config *DaemonConfig, force bool) error {
 	// Add launchd-specific config
 	lConfig := &launchdConfig{
 		DaemonConfig:           *config,
@@ -184,7 +185,7 @@ func (l *launchd) Create(config *DaemonConfig, force bool) error {
 	domainTarget := fmt.Sprintf(domainFormat, user.Uid)
 	serviceTarget := fmt.Sprintf("%s/%s", domainTarget, config.Label)
 
-	alreadyLoaded, err := l.isBootstrapped(serviceTarget)
+	alreadyLoaded, err := l.isBootstrapped(ctx, serviceTarget)
 	if err != nil {
 		return err
 	}
@@ -202,7 +203,7 @@ func (l *launchd) Create(config *DaemonConfig, force bool) error {
 
 	// Unload the service so we can reconfigure & reload
 	if alreadyLoaded {
-		_, err = l.bootout(serviceTarget)
+		_, err = l.bootout(ctx, serviceTarget)
 		if err != nil {
 			return fmt.Errorf("could not bootout daemon process '%s': %w", config.Label, err)
 		}
@@ -217,7 +218,7 @@ func (l *launchd) Create(config *DaemonConfig, force bool) error {
 		}
 	}
 
-	err = l.bootstrapFile(domainTarget, filename)
+	err = l.bootstrapFile(ctx, domainTarget, filename)
 	if err != nil {
 		return fmt.Errorf("could not bootstrap daemon process '%s': %w", config.Label, err)
 	}
@@ -225,7 +226,7 @@ func (l *launchd) Create(config *DaemonConfig, force bool) error {
 	return nil
 }
 
-func (l *launchd) Start(label string) error {
+func (l *launchd) Start(ctx context.Context, label string) error {
 	user, err := l.user.CurrentUser()
 	if err != nil {
 		return fmt.Errorf("could not get current user for launchd service: %w", err)
@@ -245,7 +246,7 @@ func (l *launchd) Start(label string) error {
 	return nil
 }
 
-func (l *launchd) Stop(label string) error {
+func (l *launchd) Stop(ctx context.Context, label string) error {
 	user, err := l.user.CurrentUser()
 	if err != nil {
 		return fmt.Errorf("could not get current user for launchd service: %w", err)
@@ -268,7 +269,7 @@ func (l *launchd) Stop(label string) error {
 	return nil
 }
 
-func (l *launchd) Remove(label string) error {
+func (l *launchd) Remove(ctx context.Context, label string) error {
 	user, err := l.user.CurrentUser()
 	if err != nil {
 		return fmt.Errorf("could not get current user for launchd service: %w", err)
@@ -278,7 +279,7 @@ func (l *launchd) Remove(label string) error {
 	domainTarget := fmt.Sprintf(domainFormat, user.Uid)
 	serviceTarget := fmt.Sprintf("%s/%s", domainTarget, label)
 
-	_, err = l.bootout(serviceTarget)
+	_, err = l.bootout(ctx, serviceTarget)
 	if err != nil {
 		return fmt.Errorf("could not remove daemon process '%s': %w", label, err)
 	}

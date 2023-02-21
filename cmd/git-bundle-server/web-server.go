@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -76,7 +77,7 @@ func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
 	}, nil
 }
 
-func (w *webServer) startServer(args []string) error {
+func (w *webServer) startServer(ctx context.Context, args []string) error {
 	// Parse subcommand arguments
 	parser := argparse.NewArgParser("git-bundle-server web-server start [-f|--force]")
 
@@ -90,8 +91,8 @@ func (w *webServer) startServer(args []string) error {
 		parser.Var(f.Value, f.Name, fmt.Sprintf("[Web server] %s", f.Usage))
 	})
 
-	parser.Parse(args)
-	validate()
+	parser.Parse(ctx, args)
+	validate(ctx)
 
 	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
@@ -130,12 +131,12 @@ func (w *webServer) startServer(args []string) error {
 		return loopErr
 	}
 
-	err = d.Create(config, *force)
+	err = d.Create(ctx, config, *force)
 	if err != nil {
 		return err
 	}
 
-	err = d.Start(config.Label)
+	err = d.Start(ctx, config.Label)
 	if err != nil {
 		return err
 	}
@@ -143,11 +144,11 @@ func (w *webServer) startServer(args []string) error {
 	return nil
 }
 
-func (w *webServer) stopServer(args []string) error {
+func (w *webServer) stopServer(ctx context.Context, args []string) error {
 	// Parse subcommand arguments
 	parser := argparse.NewArgParser("git-bundle-server web-server stop [--remove]")
 	remove := parser.Bool("remove", false, "Remove the web server daemon configuration from the system after stopping")
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
 	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
@@ -159,13 +160,13 @@ func (w *webServer) stopServer(args []string) error {
 		return err
 	}
 
-	err = d.Stop(config.Label)
+	err = d.Stop(ctx, config.Label)
 	if err != nil {
 		return err
 	}
 
 	if *remove {
-		err = d.Remove(config.Label)
+		err = d.Remove(ctx, config.Label)
 		if err != nil {
 			return err
 		}
@@ -174,12 +175,12 @@ func (w *webServer) stopServer(args []string) error {
 	return nil
 }
 
-func (w *webServer) Run(args []string) error {
+func (w *webServer) Run(ctx context.Context, args []string) error {
 	// Parse command arguments
 	parser := argparse.NewArgParser("git-bundle-server web-server (start|stop) <options>")
 	parser.Subcommand(argparse.NewSubcommand("start", "Start the web server", w.startServer))
 	parser.Subcommand(argparse.NewSubcommand("stop", "Stop the web server", w.stopServer))
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
-	return parser.InvokeSubcommand()
+	return parser.InvokeSubcommand(ctx)
 }

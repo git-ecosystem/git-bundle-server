@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -38,7 +39,7 @@ func NewSystemdProvider(
 	}
 }
 
-func (s *systemd) reloadDaemon() error {
+func (s *systemd) reloadDaemon(ctx context.Context) error {
 	exitCode, err := s.cmdExec.Run("systemctl", "--user", "daemon-reload")
 	if err != nil {
 		return err
@@ -51,7 +52,7 @@ func (s *systemd) reloadDaemon() error {
 	return nil
 }
 
-func (s *systemd) Create(config *DaemonConfig, force bool) error {
+func (s *systemd) Create(ctx context.Context, config *DaemonConfig, force bool) error {
 	user, err := s.user.CurrentUser()
 	if err != nil {
 		return fmt.Errorf("could not get current user for systemd service: %w", err)
@@ -89,7 +90,7 @@ func (s *systemd) Create(config *DaemonConfig, force bool) error {
 	}
 
 	// Reload the user-scoped service units after adding
-	err = s.reloadDaemon()
+	err = s.reloadDaemon(ctx)
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func (s *systemd) Create(config *DaemonConfig, force bool) error {
 	return nil
 }
 
-func (s *systemd) Start(label string) error {
+func (s *systemd) Start(ctx context.Context, label string) error {
 	// TODO: warn user if already running
 	exitCode, err := s.cmdExec.Run("systemctl", "--user", "start", label)
 	if err != nil {
@@ -111,7 +112,7 @@ func (s *systemd) Start(label string) error {
 	return nil
 }
 
-func (s *systemd) Stop(label string) error {
+func (s *systemd) Stop(ctx context.Context, label string) error {
 	// TODO: warn user if already stopped
 	exitCode, err := s.cmdExec.Run("systemctl", "--user", "stop", label)
 	if err != nil {
@@ -125,7 +126,7 @@ func (s *systemd) Stop(label string) error {
 	return nil
 }
 
-func (s *systemd) Remove(label string) error {
+func (s *systemd) Remove(ctx context.Context, label string) error {
 	user, err := s.user.CurrentUser()
 	if err != nil {
 		return fmt.Errorf("could not get current user for launchd service: %w", err)
@@ -138,7 +139,7 @@ func (s *systemd) Remove(label string) error {
 	}
 
 	// Reload the user-scoped service units after removing
-	err = s.reloadDaemon()
+	err = s.reloadDaemon(ctx)
 	if err != nil {
 		return err
 	}

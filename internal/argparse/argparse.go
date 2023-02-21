@@ -1,6 +1,7 @@
 package argparse
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -117,7 +118,7 @@ func (a *argParser) PositionalList(name string, description string) *[]string {
 	return arg
 }
 
-func (a *argParser) Parse(args []string) {
+func (a *argParser) Parse(ctx context.Context, args []string) {
 	if a.parsed {
 		// Do nothing if we've already parsed args
 		return
@@ -147,12 +148,12 @@ func (a *argParser) Parse(args []string) {
 	if len(a.subcommands) > 0 {
 		// Parse subcommand, if applicable
 		if a.FlagSet.NArg() == 0 {
-			a.Usage("Please specify a subcommand")
+			a.Usage(ctx, "Please specify a subcommand")
 		}
 
 		subcommand, exists := a.subcommands[a.FlagSet.Arg(0)]
 		if !exists {
-			a.Usage("Invalid subcommand '%s'", a.FlagSet.Arg(0))
+			a.Usage(ctx, "Invalid subcommand '%s'", a.FlagSet.Arg(0))
 		} else {
 			a.selectedSubcommand = subcommand
 			a.argOffset++
@@ -182,7 +183,7 @@ func (a *argParser) Parse(args []string) {
 		if a.NArg() != 0 {
 			// If not using subcommands, all args should be accounted for
 			// Exit with usage if not
-			a.Usage("Unused arguments specified: %s", strings.Join(a.Args(), " "))
+			a.Usage(ctx, "Unused arguments specified: %s", strings.Join(a.Args(), " "))
 		}
 	}
 
@@ -205,15 +206,15 @@ func (a *argParser) NArg() int {
 	}
 }
 
-func (a *argParser) InvokeSubcommand() error {
+func (a *argParser) InvokeSubcommand(ctx context.Context) error {
 	if !a.parsed || a.selectedSubcommand == nil {
 		panic("subcommand has not been parsed")
 	}
 
-	return a.selectedSubcommand.Run(a.Args())
+	return a.selectedSubcommand.Run(ctx, a.Args())
 }
 
-func (a *argParser) Usage(errFmt string, args ...any) {
+func (a *argParser) Usage(ctx context.Context, errFmt string, args ...any) {
 	fmt.Fprintf(a.FlagSet.Output(), errFmt+"\n", args...)
 	a.FlagSet.Usage()
 

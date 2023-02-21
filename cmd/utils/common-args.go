@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"strconv"
@@ -14,7 +15,7 @@ import (
 // functions we want to call from the parser.
 type argParser interface {
 	Lookup(name string) *flag.Flag
-	Usage(errFmt string, args ...any)
+	Usage(ctx context.Context, errFmt string, args ...any)
 }
 
 func GetFlagValue[T any](parser argParser, name string) T {
@@ -38,20 +39,20 @@ func GetFlagValue[T any](parser argParser, name string) T {
 
 // Sets of flags shared between multiple commands/programs
 
-func WebServerFlags(parser argParser) (*flag.FlagSet, func()) {
+func WebServerFlags(parser argParser) (*flag.FlagSet, func(context.Context)) {
 	f := flag.NewFlagSet("", flag.ContinueOnError)
 	port := f.String("port", "8080", "The port on which the server should be hosted")
 	cert := f.String("cert", "", "The path to the X.509 SSL certificate file to use in securely hosting the server")
 	key := f.String("key", "", "The path to the certificate's private key")
 
 	// Function to call for additional arg validation (may exit with 'Usage()')
-	validationFunc := func() {
+	validationFunc := func(ctx context.Context) {
 		p, err := strconv.Atoi(*port)
 		if err != nil || p < 0 || p > 65535 {
-			parser.Usage("Invalid port '%s'.", *port)
+			parser.Usage(ctx, "Invalid port '%s'.", *port)
 		}
 		if (*cert == "") != (*key == "") {
-			parser.Usage("Both '--cert' and '--key' are needed to specify SSL configuration.")
+			parser.Usage(ctx, "Both '--cert' and '--key' are needed to specify SSL configuration.")
 		}
 	}
 

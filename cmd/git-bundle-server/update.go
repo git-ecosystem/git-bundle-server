@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/github/git-bundle-server/internal/argparse"
@@ -21,10 +22,10 @@ For the repository in the current directory (or the one specified by
 bundles, and update the bundle list.`
 }
 
-func (Update) Run(args []string) error {
+func (Update) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server update <route>")
 	route := parser.PositionalString("route", "the route to update")
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
 	repo, err := core.CreateRepository(*route)
 	if err != nil {

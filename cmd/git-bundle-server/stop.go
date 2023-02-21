@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 )
@@ -17,10 +19,10 @@ Stop computing bundles or serving content for the repository at the
 specified '<route>'.`
 }
 
-func (Stop) Run(args []string) error {
+func (Stop) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server stop <route>")
 	route := parser.PositionalString("route", "the route for which bundles should stop being generated")
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
 	return core.RemoveRoute(*route)
 }

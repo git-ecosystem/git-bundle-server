@@ -1,6 +1,7 @@
 package daemon_test
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"os/user"
@@ -237,6 +238,8 @@ func TestLaunchd_Create(t *testing.T) {
 
 	testFileSystem := &MockFileSystem{}
 
+	ctx := context.Background()
+
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
 
 	// Verify launchd commands called
@@ -276,7 +279,7 @@ func TestLaunchd_Create(t *testing.T) {
 				}
 
 				// Run "Create"
-				err := launchd.Create(tt.config, force)
+				err := launchd.Create(ctx, tt.config, force)
 
 				// Assert on expected values
 				if tt.expectErr {
@@ -325,7 +328,7 @@ func TestLaunchd_Create(t *testing.T) {
 				}),
 			).Return(nil).Once()
 
-			err := launchd.Create(tt.config, false)
+			err := launchd.Create(ctx, tt.config, false)
 			assert.Nil(t, err)
 			mock.AssertExpectationsForObjects(t, testCommandExecutor, testFileSystem)
 
@@ -362,6 +365,8 @@ func TestLaunchd_Start(t *testing.T) {
 
 	testCommandExecutor := &MockCommandExecutor{}
 
+	ctx := context.Background()
+
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: launchctl succeeds
@@ -371,7 +376,7 @@ func TestLaunchd_Start(t *testing.T) {
 			[]string{"kickstart", fmt.Sprintf("user/123/%s", basicDaemonConfig.Label)},
 		).Return(0, nil).Once()
 
-		err := launchd.Start(basicDaemonConfig.Label)
+		err := launchd.Start(ctx, basicDaemonConfig.Label)
 		assert.Nil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -386,7 +391,7 @@ func TestLaunchd_Start(t *testing.T) {
 			mock.AnythingOfType("[]string"),
 		).Return(1, nil).Once()
 
-		err := launchd.Start(basicDaemonConfig.Label)
+		err := launchd.Start(ctx, basicDaemonConfig.Label)
 		assert.NotNil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -441,6 +446,8 @@ func TestLaunchd_Stop(t *testing.T) {
 
 	testCommandExecutor := &MockCommandExecutor{}
 
+	ctx := context.Background()
+
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
 
 	for _, tt := range launchdStopTests {
@@ -454,7 +461,7 @@ func TestLaunchd_Stop(t *testing.T) {
 			}
 
 			// Call function
-			err := launchd.Stop(tt.label)
+			err := launchd.Stop(ctx, tt.label)
 			mock.AssertExpectationsForObjects(t, testCommandExecutor)
 			if tt.expectErr {
 				assert.NotNil(t, err)
@@ -531,6 +538,8 @@ func TestLaunchd_Remove(t *testing.T) {
 	testCommandExecutor := &MockCommandExecutor{}
 	testFileSystem := &MockFileSystem{}
 
+	ctx := context.Background()
+
 	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range launchdRemoveTests {
@@ -552,7 +561,7 @@ func TestLaunchd_Remove(t *testing.T) {
 			}
 
 			// Call function
-			err := launchd.Remove(tt.label)
+			err := launchd.Remove(ctx, tt.label)
 			mock.AssertExpectationsForObjects(t, testCommandExecutor)
 			if tt.expectErr {
 				assert.NotNil(t, err)

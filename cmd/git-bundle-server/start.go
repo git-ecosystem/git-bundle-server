@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -20,10 +21,10 @@ Start computing bundles and serving content for the repository at the
 specified '<route>'.`
 }
 
-func (Start) Run(args []string) error {
+func (Start) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server start <route>")
 	route := parser.PositionalString("route", "the route for which bundles should be generated")
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
 	// CreateRepository registers the route.
 	repo, err := core.CreateRepository(*route)

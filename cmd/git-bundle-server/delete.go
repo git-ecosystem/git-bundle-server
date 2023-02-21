@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/github/git-bundle-server/internal/argparse"
@@ -19,10 +20,10 @@ Remove the configuration for the given '<route>' and delete its repository
 data.`
 }
 
-func (Delete) Run(args []string) error {
+func (Delete) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server delete <route>")
 	route := parser.PositionalString("route", "the route to delete")
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
 	repo, err := core.CreateRepository(*route)
 	if err != nil {

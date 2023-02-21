@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -20,6 +21,8 @@ func all() []argparse.Subcommand {
 }
 
 func main() {
+	ctx := context.Background()
+
 	cmds := all()
 
 	parser := argparse.NewArgParser("git-bundle-server <command> [<options>]")
@@ -27,9 +30,9 @@ func main() {
 	for _, cmd := range cmds {
 		parser.Subcommand(cmd)
 	}
-	parser.Parse(os.Args[1:])
+	parser.Parse(ctx, os.Args[1:])
 
-	err := parser.InvokeSubcommand()
+	err := parser.InvokeSubcommand(ctx)
 	if err != nil {
 		log.Fatal("Failed with error: ", err)
 	}

@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 
@@ -15,13 +16,13 @@ type DaemonConfig struct {
 }
 
 type DaemonProvider interface {
-	Create(config *DaemonConfig, force bool) error
+	Create(ctx context.Context, config *DaemonConfig, force bool) error
 
-	Start(label string) error
+	Start(ctx context.Context, label string) error
 
-	Stop(label string) error
+	Stop(ctx context.Context, label string) error
 
-	Remove(label string) error
+	Remove(ctx context.Context, label string) error
 }
 
 func NewDaemonProvider(

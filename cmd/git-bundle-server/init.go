@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/github/git-bundle-server/internal/argparse"
@@ -21,12 +22,12 @@ Initialize a repository by cloning a bare repo from '<url>', whose bundles
 should be hosted at '<route>'.`
 }
 
-func (Init) Run(args []string) error {
+func (Init) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server init <url> <route>")
 	url := parser.PositionalString("url", "the URL of a repository to clone")
 	// TODO: allow parsing <route> out of <url>
 	route := parser.PositionalString("route", "the route to host the specified repo")
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
 	repo, err := core.CreateRepository(*route)
 	if err != nil {
