@@ -15,30 +15,30 @@ import (
 	"github.com/github/git-bundle-server/internal/daemon"
 )
 
-type webServer struct {
+type webServerCmd struct {
 	user       common.UserProvider
 	cmdExec    common.CommandExecutor
 	fileSystem common.FileSystem
 }
 
-func NewWebServerCommand() *webServer {
-	// Create dependencies
-	return &webServer{
+func NewWebServerCommand() argparse.Subcommand {
+	// Create subcommand-specific dependencies
+	return &webServerCmd{
 		user:       common.NewUserProvider(),
 		cmdExec:    common.NewCommandExecutor(),
 		fileSystem: common.NewFileSystem(),
 	}
 }
 
-func (webServer) Name() string {
+func (webServerCmd) Name() string {
 	return "web-server"
 }
 
-func (webServer) Description() string {
+func (webServerCmd) Description() string {
 	return `Manage the web server hosting bundle content`
 }
 
-func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
+func (w *webServerCmd) getDaemonConfig() (*daemon.DaemonConfig, error) {
 	// Find git-bundle-web-server
 	// First, search for it on the path
 	programPath, err := exec.LookPath("git-bundle-web-server")
@@ -77,7 +77,7 @@ func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
 	}, nil
 }
 
-func (w *webServer) startServer(ctx context.Context, args []string) error {
+func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 	// Parse subcommand arguments
 	parser := argparse.NewArgParser("git-bundle-server web-server start [-f|--force]")
 
@@ -144,7 +144,7 @@ func (w *webServer) startServer(ctx context.Context, args []string) error {
 	return nil
 }
 
-func (w *webServer) stopServer(ctx context.Context, args []string) error {
+func (w *webServerCmd) stopServer(ctx context.Context, args []string) error {
 	// Parse subcommand arguments
 	parser := argparse.NewArgParser("git-bundle-server web-server stop [--remove]")
 	remove := parser.Bool("remove", false, "Remove the web server daemon configuration from the system after stopping")
@@ -175,7 +175,7 @@ func (w *webServer) stopServer(ctx context.Context, args []string) error {
 	return nil
 }
 
-func (w *webServer) Run(ctx context.Context, args []string) error {
+func (w *webServerCmd) Run(ctx context.Context, args []string) error {
 	// Parse command arguments
 	parser := argparse.NewArgParser("git-bundle-server web-server (start|stop) <options>")
 	parser.Subcommand(argparse.NewSubcommand("start", "Start the web server", w.startServer))

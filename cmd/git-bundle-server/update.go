@@ -9,20 +9,24 @@ import (
 	"github.com/github/git-bundle-server/internal/core"
 )
 
-type Update struct{}
+type updateCmd struct{}
 
-func (Update) Name() string {
+func NewUpdateCommand() argparse.Subcommand {
+	return &updateAllCmd{}
+}
+
+func (updateCmd) Name() string {
 	return "update"
 }
 
-func (Update) Description() string {
+func (updateCmd) Description() string {
 	return `
 For the repository in the current directory (or the one specified by
 '<route>'), fetch the latest content from the remote, create a new set of
 bundles, and update the bundle list.`
 }
 
-func (Update) Run(ctx context.Context, args []string) error {
+func (updateCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server update <route>")
 	route := parser.PositionalString("route", "the route to update")
 	parser.Parse(ctx, args)

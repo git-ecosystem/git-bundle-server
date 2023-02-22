@@ -10,19 +10,23 @@ import (
 	"github.com/github/git-bundle-server/internal/git"
 )
 
-type Init struct{}
+type initCmd struct{}
 
-func (Init) Name() string {
+func NewInitCommand() argparse.Subcommand {
+	return &initCmd{}
+}
+
+func (initCmd) Name() string {
 	return "init"
 }
 
-func (Init) Description() string {
+func (initCmd) Description() string {
 	return `
 Initialize a repository by cloning a bare repo from '<url>', whose bundles
 should be hosted at '<route>'.`
 }
 
-func (Init) Run(ctx context.Context, args []string) error {
+func (initCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server init <url> <route>")
 	url := parser.PositionalString("url", "the URL of a repository to clone")
 	// TODO: allow parsing <route> out of <url>

@@ -11,18 +11,22 @@ import (
 	"github.com/github/git-bundle-server/internal/core"
 )
 
-type UpdateAll struct{}
+type updateAllCmd struct{}
 
-func (UpdateAll) Name() string {
+func NewUpdateAllCommand() argparse.Subcommand {
+	return &updateAllCmd{}
+}
+
+func (updateAllCmd) Name() string {
 	return "update-all"
 }
 
-func (UpdateAll) Description() string {
+func (updateAllCmd) Description() string {
 	return `
 For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
-func (UpdateAll) Run(ctx context.Context, args []string) error {
+func (updateAllCmd) Run(ctx context.Context, args []string) error {
 	user, err := common.NewUserProvider().CurrentUser()
 	if err != nil {
 		return err

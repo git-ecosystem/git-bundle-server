@@ -8,19 +8,23 @@ import (
 	"github.com/github/git-bundle-server/internal/core"
 )
 
-type Delete struct{}
+type deleteCmd struct{}
 
-func (Delete) Name() string {
+func NewDeleteCommand() argparse.Subcommand {
+	return &deleteCmd{}
+}
+
+func (deleteCmd) Name() string {
 	return "delete"
 }
 
-func (Delete) Description() string {
+func (deleteCmd) Description() string {
 	return `
 Remove the configuration for the given '<route>' and delete its repository
 data.`
 }
 
-func (Delete) Run(ctx context.Context, args []string) error {
+func (deleteCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server delete <route>")
 	route := parser.PositionalString("route", "the route to delete")
 	parser.Parse(ctx, args)

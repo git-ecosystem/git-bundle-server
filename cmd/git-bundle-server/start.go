@@ -9,19 +9,23 @@ import (
 	"github.com/github/git-bundle-server/internal/core"
 )
 
-type Start struct{}
+type startCmd struct{}
 
-func (Start) Name() string {
+func NewStartCommand() argparse.Subcommand {
+	return &startCmd{}
+}
+
+func (startCmd) Name() string {
 	return "start"
 }
 
-func (Start) Description() string {
+func (startCmd) Description() string {
 	return `
 Start computing bundles and serving content for the repository at the
 specified '<route>'.`
 }
 
-func (Start) Run(ctx context.Context, args []string) error {
+func (startCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser("git-bundle-server start <route>")
 	route := parser.PositionalString("route", "the route for which bundles should be generated")
 	parser.Parse(ctx, args)

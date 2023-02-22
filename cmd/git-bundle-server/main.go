@@ -10,12 +10,12 @@ import (
 
 func all() []argparse.Subcommand {
 	return []argparse.Subcommand{
-		Delete{},
-		Init{},
-		Start{},
-		Stop{},
-		Update{},
-		UpdateAll{},
+		NewDeleteCommand(),
+		NewInitCommand(),
+		NewStartCommand(),
+		NewStopCommand(),
+		NewUpdateCommand(),
+		NewUpdateAllCommand(),
 		NewWebServerCommand(),
 	}
 }
