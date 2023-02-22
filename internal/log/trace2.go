@@ -166,6 +166,14 @@ func (t *Trace2) logExit(ctx context.Context, exitCode int) {
 	t.logger.Sync()
 }
 
+func (t *Trace2) LogCommand(ctx context.Context, commandName string) context.Context {
+	ctx, sharedFields := t.sharedFields(ctx)
+
+	t.logger.Info("cmd_name", sharedFields.with(zap.String("name", commandName))...)
+
+	return ctx
+}
+
 func (t *Trace2) Error(ctx context.Context, err error) error {
 	// We only want to log the error if it's not already logged deeper in the
 	// call stack.

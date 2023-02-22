@@ -215,6 +215,10 @@ func (a *argParser) InvokeSubcommand(ctx context.Context) error {
 		panic("subcommand has not been parsed")
 	}
 
+	if a.isTopLevel {
+		a.logger.LogCommand(ctx, a.selectedSubcommand.Name())
+	}
+
 	return a.selectedSubcommand.Run(ctx, a.Args())
 }
 
