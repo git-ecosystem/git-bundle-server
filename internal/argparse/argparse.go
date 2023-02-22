@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// For consistency with 'flag', use 2 as the usage-related error code
+const usageExitCode int = 2
+
 type positionalArg struct {
 	name        string
 	description string
@@ -30,7 +33,7 @@ type argParser struct {
 }
 
 func NewArgParser(usageString string) *argParser {
-	flagSet := flag.NewFlagSet("", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("", flag.ContinueOnError)
 
 	a := &argParser{
 		isTopLevel:  false,
@@ -136,7 +139,9 @@ func (a *argParser) Parse(args []string) {
 
 	err := a.FlagSet.Parse(args)
 	if err != nil {
-		panic("argParser FlagSet error handling should be 'ExitOnError', but error encountered")
+		// The error was already printed (via a.FlagSet.Usage()), so we
+		// just need to exit
+		os.Exit(usageExitCode)
 	}
 
 	if len(a.subcommands) > 0 {
@@ -212,6 +217,5 @@ func (a *argParser) Usage(errFmt string, args ...any) {
 	fmt.Fprintf(a.FlagSet.Output(), errFmt+"\n", args...)
 	a.FlagSet.Usage()
 
-	// Exit with error code 2 to match flag.Parse() behavior
-	os.Exit(2)
+	os.Exit(usageExitCode)
 }
