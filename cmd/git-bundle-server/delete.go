@@ -37,12 +37,14 @@ func (d *deleteCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route to delete")
 	parser.Parse(ctx, args)
 
-	repo, err := core.CreateRepository(*route)
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, d.container)
+
+	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return d.logger.Error(ctx, err)
 	}
 
-	err = core.RemoveRoute(*route)
+	err = repoProvider.RemoveRoute(ctx, *route)
 	if err != nil {
 		return d.logger.Error(ctx, err)
 	}

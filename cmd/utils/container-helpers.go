@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/github/git-bundle-server/internal/common"
+	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/daemon"
 	"github.com/github/git-bundle-server/internal/log"
 )
@@ -18,6 +19,13 @@ func BuildGitBundleServerContainer(logger log.TraceLogger) *DependencyContainer 
 	})
 	registerDependency(container, func(ctx context.Context) common.FileSystem {
 		return common.NewFileSystem()
+	})
+	registerDependency(container, func(ctx context.Context) core.RepositoryProvider {
+		return core.NewRepositoryProvider(
+			logger,
+			GetDependency[common.UserProvider](ctx, container),
+			GetDependency[common.FileSystem](ctx, container),
+		)
 	})
 	registerDependency(container, func(ctx context.Context) daemon.DaemonProvider {
 		t, err := daemon.NewDaemonProvider(

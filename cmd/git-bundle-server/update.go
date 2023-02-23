@@ -39,7 +39,9 @@ func (u *updateCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route to update")
 	parser.Parse(ctx, args)
 
-	repo, err := core.CreateRepository(*route)
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, u.container)
+
+	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return u.logger.Error(ctx, err)
 	}

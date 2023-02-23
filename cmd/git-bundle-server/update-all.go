@@ -7,7 +7,6 @@ import (
 
 	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
-	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
 )
@@ -34,23 +33,19 @@ For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
 func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
-	user, err := utils.GetDependency[common.UserProvider](ctx, u.container).CurrentUser()
+	parser := argparse.NewArgParser(u.logger, "git-bundle-server update-all")
+	parser.Parse(ctx, args)
+
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, u.container)
+
+	repos, err := repoProvider.GetRepositories(ctx)
 	if err != nil {
 		return u.logger.Error(ctx, err)
 	}
-	fs := utils.GetDependency[common.FileSystem](ctx, u.container)
-
-	parser := argparse.NewArgParser(u.logger, "git-bundle-server update-all")
-	parser.Parse(ctx, args)
 
 	exe, err := os.Executable()
 	if err != nil {
 		return u.logger.Errorf(ctx, "failed to get path to execuable: %w", err)
-	}
-
-	repos, err := core.GetRepositories(user, fs)
-	if err != nil {
-		return u.logger.Error(ctx, err)
 	}
 
 	subargs := []string{"update", ""}

@@ -36,7 +36,9 @@ func (s *stopCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route for which bundles should stop being generated")
 	parser.Parse(ctx, args)
 
-	err := core.RemoveRoute(*route)
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, s.container)
+
+	err := repoProvider.RemoveRoute(ctx, *route)
 	if err != nil {
 		s.logger.Error(ctx, err)
 	}

@@ -37,8 +37,10 @@ func (s *startCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route for which bundles should be generated")
 	parser.Parse(ctx, args)
 
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, s.container)
+
 	// CreateRepository registers the route.
-	repo, err := core.CreateRepository(*route)
+	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return s.logger.Error(ctx, err)
 	}

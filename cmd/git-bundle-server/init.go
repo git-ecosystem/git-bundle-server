@@ -41,7 +41,9 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route to host the specified repo")
 	parser.Parse(ctx, args)
 
-	repo, err := core.CreateRepository(*route)
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, i.container)
+
+	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return i.logger.Error(ctx, err)
 	}
