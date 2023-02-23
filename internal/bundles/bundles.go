@@ -39,8 +39,19 @@ type BundleList struct {
 	Bundles map[int64]Bundle
 }
 
-func addBundleToList(bundle Bundle, list *BundleList) {
+func (list *BundleList) addBundle(bundle Bundle) {
 	list.Bundles[bundle.CreationToken] = bundle
+}
+
+func (list *BundleList) sortedCreationTokens() []int64 {
+	keys := make([]int64, 0, len(list.Bundles))
+	for timestamp := range list.Bundles {
+		keys = append(keys, timestamp)
+	}
+
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+
+	return keys
 }
 
 type BundleProvider interface {
@@ -79,7 +90,7 @@ func (b *bundleProvider) CreateInitialBundle(ctx context.Context, repo *core.Rep
 func (b *bundleProvider) createDistinctBundle(repo *core.Repository, list *BundleList) Bundle {
 	timestamp := time.Now().UTC().Unix()
 
-	keys := b.getSortedCreationTokens(list)
+	keys := list.sortedCreationTokens()
 
 	maxTimestamp := keys[len(keys)-1]
 	if timestamp <= maxTimestamp {
@@ -100,7 +111,7 @@ func (b *bundleProvider) createDistinctBundle(repo *core.Repository, list *Bundl
 func (b *bundleProvider) CreateSingletonList(ctx context.Context, bundle Bundle) *BundleList {
 	list := BundleList{1, "all", make(map[int64]Bundle)}
 
-	addBundleToList(bundle, &list)
+	list.addBundle(bundle)
 
 	return &list
 }
@@ -122,7 +133,7 @@ func (b *bundleProvider) WriteBundleList(ctx context.Context, list *BundleList, 
 		out, "[bundle]\n\tversion = %d\n\tmode = %s\n\n",
 		list.Version, list.Mode)
 
-	keys := b.getSortedCreationTokens(list)
+	keys := list.sortedCreationTokens()
 
 	for _, token := range keys {
 		bundle := list.Bundles[token]
@@ -298,7 +309,7 @@ func (b *bundleProvider) CollapseList(ctx context.Context, repo *core.Repository
 		return nil
 	}
 
-	keys := b.getSortedCreationTokens(list)
+	keys := list.sortedCreationTokens()
 
 	refs := make(map[string]string)
 
@@ -348,15 +359,4 @@ func (b *bundleProvider) CollapseList(ctx context.Context, repo *core.Repository
 
 	list.Bundles[maxTimestamp] = bundle
 	return nil
-}
-
-func (b *bundleProvider) getSortedCreationTokens(list *BundleList) []int64 {
-	keys := make([]int64, 0, len(list.Bundles))
-	for timestamp := range list.Bundles {
-		keys = append(keys, timestamp)
-	}
-
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-
-	return keys
 }
