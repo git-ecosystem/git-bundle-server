@@ -40,19 +40,20 @@ func (u *updateCmd) Run(ctx context.Context, args []string) error {
 	parser.Parse(ctx, args)
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, u.container)
+	bundleProvider := utils.GetDependency[bundles.BundleProvider](ctx, u.container)
 
 	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return u.logger.Error(ctx, err)
 	}
 
-	list, err := bundles.GetBundleList(repo)
+	list, err := bundleProvider.GetBundleList(ctx, repo)
 	if err != nil {
 		return u.logger.Errorf(ctx, "failed to load bundle list: %w", err)
 	}
 
 	fmt.Printf("Creating new incremental bundle\n")
-	bundle, err := bundles.CreateIncrementalBundle(repo, list)
+	bundle, err := bundleProvider.CreateIncrementalBundle(ctx, repo, list)
 	if err != nil {
 		return u.logger.Error(ctx, err)
 	}
@@ -65,13 +66,13 @@ func (u *updateCmd) Run(ctx context.Context, args []string) error {
 	list.Bundles[bundle.CreationToken] = *bundle
 
 	fmt.Printf("Collapsing bundle list\n")
-	err = bundles.CollapseList(repo, list)
+	err = bundleProvider.CollapseList(ctx, repo, list)
 	if err != nil {
 		return u.logger.Error(ctx, err)
 	}
 
 	fmt.Printf("Writing updated bundle list\n")
-	listErr := bundles.WriteBundleList(list, repo)
+	listErr := bundleProvider.WriteBundleList(ctx, list, repo)
 	if listErr != nil {
 		return u.logger.Errorf(ctx, "failed to write bundle list: %w", listErr)
 	}

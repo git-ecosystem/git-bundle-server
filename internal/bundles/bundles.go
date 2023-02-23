@@ -2,6 +2,7 @@ package bundles
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/git"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
 type BundleHeader struct {
@@ -41,7 +43,27 @@ func addBundleToList(bundle Bundle, list *BundleList) {
 	list.Bundles[bundle.CreationToken] = bundle
 }
 
-func CreateInitialBundle(repo *core.Repository) Bundle {
+type BundleProvider interface {
+	CreateInitialBundle(ctx context.Context, repo *core.Repository) Bundle
+	CreateIncrementalBundle(ctx context.Context, repo *core.Repository, list *BundleList) (*Bundle, error)
+
+	CreateSingletonList(ctx context.Context, bundle Bundle) *BundleList
+	WriteBundleList(ctx context.Context, list *BundleList, repo *core.Repository) error
+	GetBundleList(ctx context.Context, repo *core.Repository) (*BundleList, error)
+	CollapseList(ctx context.Context, repo *core.Repository, list *BundleList) error
+}
+
+type bundleProvider struct {
+	logger log.TraceLogger
+}
+
+func NewBundleProvider(logger log.TraceLogger) BundleProvider {
+	return &bundleProvider{
+		logger: logger,
+	}
+}
+
+func (b *bundleProvider) CreateInitialBundle(ctx context.Context, repo *core.Repository) Bundle {
 	timestamp := time.Now().UTC().Unix()
 	bundleName := "bundle-" + fmt.Sprint(timestamp) + ".bundle"
 	bundleFile := repo.WebDir + "/" + bundleName
@@ -54,10 +76,10 @@ func CreateInitialBundle(repo *core.Repository) Bundle {
 	return bundle
 }
 
-func CreateDistinctBundle(repo *core.Repository, list *BundleList) Bundle {
+func (b *bundleProvider) createDistinctBundle(repo *core.Repository, list *BundleList) Bundle {
 	timestamp := time.Now().UTC().Unix()
 
-	keys := GetSortedCreationTokens(list)
+	keys := b.getSortedCreationTokens(list)
 
 	maxTimestamp := keys[len(keys)-1]
 	if timestamp <= maxTimestamp {
@@ -75,7 +97,7 @@ func CreateDistinctBundle(repo *core.Repository, list *BundleList) Bundle {
 	return bundle
 }
 
-func CreateSingletonList(bundle Bundle) *BundleList {
+func (b *bundleProvider) CreateSingletonList(ctx context.Context, bundle Bundle) *BundleList {
 	list := BundleList{1, "all", make(map[int64]Bundle)}
 
 	addBundleToList(bundle, &list)
@@ -84,7 +106,7 @@ func CreateSingletonList(bundle Bundle) *BundleList {
 }
 
 // Given a BundleList
-func WriteBundleList(list *BundleList, repo *core.Repository) error {
+func (b *bundleProvider) WriteBundleList(ctx context.Context, list *BundleList, repo *core.Repository) error {
 	listFile := repo.WebDir + "/bundle-list"
 	jsonFile := repo.RepoDir + "/bundle-list.json"
 
@@ -100,7 +122,7 @@ func WriteBundleList(list *BundleList, repo *core.Repository) error {
 		out, "[bundle]\n\tversion = %d\n\tmode = %s\n\n",
 		list.Version, list.Mode)
 
-	keys := GetSortedCreationTokens(list)
+	keys := b.getSortedCreationTokens(list)
 
 	for _, token := range keys {
 		bundle := list.Bundles[token]
@@ -145,7 +167,7 @@ func WriteBundleList(list *BundleList, repo *core.Repository) error {
 	return os.Rename(listFile+".lock", listFile)
 }
 
-func GetBundleList(repo *core.Repository) (*BundleList, error) {
+func (b *bundleProvider) GetBundleList(ctx context.Context, repo *core.Repository) (*BundleList, error) {
 	jsonFile := repo.RepoDir + "/bundle-list.json"
 
 	reader, err := os.Open(jsonFile)
@@ -162,7 +184,7 @@ func GetBundleList(repo *core.Repository) (*BundleList, error) {
 	return &list, nil
 }
 
-func GetBundleHeader(bundle Bundle) (*BundleHeader, error) {
+func (b *bundleProvider) getBundleHeader(bundle Bundle) (*BundleHeader, error) {
 	file, err := os.Open(bundle.Filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bundle file: %w", err)
@@ -232,11 +254,11 @@ func GetBundleHeader(bundle Bundle) (*BundleHeader, error) {
 	return &header, nil
 }
 
-func GetAllPrereqsForIncrementalBundle(list *BundleList) ([]string, error) {
+func (b *bundleProvider) getAllPrereqsForIncrementalBundle(list *BundleList) ([]string, error) {
 	prereqs := []string{}
 
 	for _, bundle := range list.Bundles {
-		header, err := GetBundleHeader(bundle)
+		header, err := b.getBundleHeader(bundle)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse bundle file %s: %w", bundle.Filename, err)
 		}
@@ -249,10 +271,10 @@ func GetAllPrereqsForIncrementalBundle(list *BundleList) ([]string, error) {
 	return prereqs, nil
 }
 
-func CreateIncrementalBundle(repo *core.Repository, list *BundleList) (*Bundle, error) {
-	bundle := CreateDistinctBundle(repo, list)
+func (b *bundleProvider) CreateIncrementalBundle(ctx context.Context, repo *core.Repository, list *BundleList) (*Bundle, error) {
+	bundle := b.createDistinctBundle(repo, list)
 
-	lines, err := GetAllPrereqsForIncrementalBundle(list)
+	lines, err := b.getAllPrereqsForIncrementalBundle(list)
 	if err != nil {
 		return nil, err
 	}
@@ -269,14 +291,14 @@ func CreateIncrementalBundle(repo *core.Repository, list *BundleList) (*Bundle, 
 	return &bundle, nil
 }
 
-func CollapseList(repo *core.Repository, list *BundleList) error {
+func (b *bundleProvider) CollapseList(ctx context.Context, repo *core.Repository, list *BundleList) error {
 	maxBundles := 5
 
 	if len(list.Bundles) <= maxBundles {
 		return nil
 	}
 
-	keys := GetSortedCreationTokens(list)
+	keys := b.getSortedCreationTokens(list)
 
 	refs := make(map[string]string)
 
@@ -289,7 +311,7 @@ func CollapseList(repo *core.Repository, list *BundleList) error {
 			maxTimestamp = bundle.CreationToken
 		}
 
-		header, err := GetBundleHeader(bundle)
+		header, err := b.getBundleHeader(bundle)
 		if err != nil {
 			return fmt.Errorf("failed to parse bundle file %s: %w", bundle.Filename, err)
 		}
@@ -328,7 +350,7 @@ func CollapseList(repo *core.Repository, list *BundleList) error {
 	return nil
 }
 
-func GetSortedCreationTokens(list *BundleList) []int64 {
+func (b *bundleProvider) getSortedCreationTokens(list *BundleList) []int64 {
 	keys := make([]int64, 0, len(list.Bundles))
 	for timestamp := range list.Bundles {
 		keys = append(keys, timestamp)

@@ -42,6 +42,7 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 	parser.Parse(ctx, args)
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, i.container)
+	bundleProvider := utils.GetDependency[bundles.BundleProvider](ctx, i.container)
 
 	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
@@ -65,7 +66,7 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 		return i.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
 	}
 
-	bundle := bundles.CreateInitialBundle(repo)
+	bundle := bundleProvider.CreateInitialBundle(ctx, repo)
 	fmt.Printf("Constructing base bundle file at %s\n", bundle.Filename)
 
 	written, gitErr := git.CreateBundle(repo.RepoDir, bundle.Filename)
@@ -76,8 +77,8 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 		return i.logger.Errorf(ctx, "refused to write empty bundle. Is the repo empty?")
 	}
 
-	list := bundles.CreateSingletonList(bundle)
-	listErr := bundles.WriteBundleList(list, repo)
+	list := bundleProvider.CreateSingletonList(ctx, bundle)
+	listErr := bundleProvider.WriteBundleList(ctx, list, repo)
 	if listErr != nil {
 		return i.logger.Errorf(ctx, "failed to write bundle list: %w", listErr)
 	}
