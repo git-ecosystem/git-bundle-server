@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/github/git-bundle-server/internal/log"
@@ -146,7 +145,7 @@ func (a *argParser) Parse(ctx context.Context, args []string) {
 	if err != nil {
 		// The error was already printed (via a.FlagSet.Usage()), so we
 		// just need to exit
-		os.Exit(usageExitCode)
+		a.logger.Exit(ctx, usageExitCode)
 	}
 
 	if len(a.subcommands) > 0 {
@@ -222,5 +221,5 @@ func (a *argParser) Usage(ctx context.Context, errFmt string, args ...any) {
 	fmt.Fprintf(a.FlagSet.Output(), errFmt+"\n", args...)
 	a.FlagSet.Usage()
 
-	os.Exit(usageExitCode)
+	a.logger.Exit(ctx, usageExitCode)
 }

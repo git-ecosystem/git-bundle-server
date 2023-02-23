@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,17 +12,17 @@ import (
 
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
-	tracelog "github.com/github/git-bundle-server/internal/log"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
 type bundleWebServer struct {
-	logger             tracelog.TraceLogger
+	logger             log.TraceLogger
 	server             *http.Server
 	serverWaitGroup    *sync.WaitGroup
 	listenAndServeFunc func() error
 }
 
-func NewBundleWebServer(logger tracelog.TraceLogger,
+func NewBundleWebServer(logger log.TraceLogger,
 	port string, certFile string, keyFile string,
 ) *bundleWebServer {
 	bundleServer := &bundleWebServer{
@@ -123,7 +122,7 @@ func (b *bundleWebServer) StartServerAsync(ctx context.Context) {
 		// Return error unless it indicates graceful shutdown
 		err := b.listenAndServeFunc()
 		if err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
+			b.logger.Fatal(ctx, err)
 		}
 	}(ctx)
 

@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 
 	"github.com/github/git-bundle-server/internal/argparse"
-	tracelog "github.com/github/git-bundle-server/internal/log"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
-func all(logger tracelog.TraceLogger) []argparse.Subcommand {
+func all(logger log.TraceLogger) []argparse.Subcommand {
 	return []argparse.Subcommand{
 		NewDeleteCommand(logger),
 		NewInitCommand(logger),
@@ -22,7 +21,7 @@ func all(logger tracelog.TraceLogger) []argparse.Subcommand {
 }
 
 func main() {
-	tracelog.WithTraceLogger(context.Background(), func(ctx context.Context, logger tracelog.TraceLogger) {
+	log.WithTraceLogger(context.Background(), func(ctx context.Context, logger log.TraceLogger) {
 		cmds := all(logger)
 
 		parser := argparse.NewArgParser(logger, "git-bundle-server <command> [<options>]")
@@ -34,7 +33,7 @@ func main() {
 
 		err := parser.InvokeSubcommand(ctx)
 		if err != nil {
-			log.Fatalf("Failed with error: %s", err)
+			logger.Fatalf(ctx, "Failed with error: %s", err)
 		}
 	})
 }

@@ -7,7 +7,11 @@ import (
 	"runtime/debug"
 )
 
-type TraceLogger interface{}
+type TraceLogger interface {
+	Exit(ctx context.Context, exitCode int)
+	Fatal(ctx context.Context, err error)
+	Fatalf(ctx context.Context, format string, a ...any)
+}
 
 type traceLoggerInternal interface {
 	// Internal setup/teardown functions

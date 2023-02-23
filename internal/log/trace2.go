@@ -165,3 +165,16 @@ func (t *Trace2) logExit(ctx context.Context, exitCode int) {
 
 	t.logger.Sync()
 }
+
+func (t *Trace2) Exit(ctx context.Context, exitCode int) {
+	t.logExit(ctx, exitCode)
+	os.Exit(exitCode)
+}
+
+func (t *Trace2) Fatal(ctx context.Context, err error) {
+	t.Exit(ctx, 1)
+}
+
+func (t *Trace2) Fatalf(ctx context.Context, format string, a ...any) {
+	t.Exit(ctx, 1)
+}
