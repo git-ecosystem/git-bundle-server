@@ -33,5 +33,10 @@ func (s *stopCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route for which bundles should stop being generated")
 	parser.Parse(ctx, args)
 
-	return core.RemoveRoute(*route)
+	err := core.RemoveRoute(*route)
+	if err != nil {
+		s.logger.Error(ctx, err)
+	}
+
+	return nil
 }

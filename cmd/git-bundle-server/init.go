@@ -40,24 +40,24 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 
 	repo, err := core.CreateRepository(*route)
 	if err != nil {
-		return err
+		return i.logger.Error(ctx, err)
 	}
 
 	fmt.Printf("Cloning repository from %s\n", *url)
 	gitErr := git.GitCommand("clone", "--bare", *url, repo.RepoDir)
 
 	if gitErr != nil {
-		return fmt.Errorf("failed to clone repository: %w", gitErr)
+		return i.logger.Errorf(ctx, "failed to clone repository: %w", gitErr)
 	}
 
 	gitErr = git.GitCommand("-C", repo.RepoDir, "config", "remote.origin.fetch", "+refs/heads/*:refs/heads/*")
 	if gitErr != nil {
-		return fmt.Errorf("failed to configure refspec: %w", gitErr)
+		return i.logger.Errorf(ctx, "failed to configure refspec: %w", gitErr)
 	}
 
 	gitErr = git.GitCommand("-C", repo.RepoDir, "fetch", "origin")
 	if gitErr != nil {
-		return fmt.Errorf("failed to fetch latest refs: %w", gitErr)
+		return i.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
 	}
 
 	bundle := bundles.CreateInitialBundle(repo)
@@ -65,16 +65,16 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 
 	written, gitErr := git.CreateBundle(repo.RepoDir, bundle.Filename)
 	if gitErr != nil {
-		return fmt.Errorf("failed to create bundle: %w", gitErr)
+		return i.logger.Errorf(ctx, "failed to create bundle: %w", gitErr)
 	}
 	if !written {
-		return fmt.Errorf("refused to write empty bundle. Is the repo empty?")
+		return i.logger.Errorf(ctx, "refused to write empty bundle. Is the repo empty?")
 	}
 
 	list := bundles.CreateSingletonList(bundle)
 	listErr := bundles.WriteBundleList(list, repo)
 	if listErr != nil {
-		return fmt.Errorf("failed to write bundle list: %w", listErr)
+		return i.logger.Errorf(ctx, "failed to write bundle list: %w", listErr)
 	}
 
 	SetCronSchedule()

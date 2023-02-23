@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/github/git-bundle-server/internal/argparse"
@@ -38,12 +37,12 @@ func (s *startCmd) Run(ctx context.Context, args []string) error {
 	// CreateRepository registers the route.
 	repo, err := core.CreateRepository(*route)
 	if err != nil {
-		return err
+		return s.logger.Error(ctx, err)
 	}
 
 	_, err = os.ReadDir(repo.RepoDir)
 	if err != nil {
-		return fmt.Errorf("route '%s' appears to have been deleted; use 'init' instead", *route)
+		return s.logger.Errorf(ctx, "route '%s' appears to have been deleted; use 'init' instead", *route)
 	}
 
 	// Make sure we have the global schedule running.

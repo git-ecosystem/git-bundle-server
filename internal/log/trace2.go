@@ -166,6 +166,40 @@ func (t *Trace2) logExit(ctx context.Context, exitCode int) {
 	t.logger.Sync()
 }
 
+func (t *Trace2) Error(ctx context.Context, err error) error {
+	// We only want to log the error if it's not already logged deeper in the
+	// call stack.
+	if _, ok := err.(loggedError); !ok {
+		_, sharedFields := t.sharedFields(ctx)
+		t.logger.Error("error", sharedFields.with(
+			zap.String("msg", err.Error()),
+			zap.String("fmt", err.Error()))...)
+	}
+	return loggedError(err)
+}
+
+func (t *Trace2) Errorf(ctx context.Context, format string, a ...any) error {
+	// We only want to log the error if it's not already logged deeper in the
+	// call stack.
+	isLogged := false
+	for _, fmtArg := range a {
+		if _, ok := fmtArg.(loggedError); ok {
+			isLogged = true
+			break
+		}
+	}
+
+	err := loggedError(fmt.Errorf(format, a...))
+
+	if isLogged {
+		_, sharedFields := t.sharedFields(ctx)
+		t.logger.Info("error", sharedFields.with(
+			zap.String("msg", err.Error()),
+			zap.String("fmt", format))...)
+	}
+	return err
+}
+
 func (t *Trace2) Exit(ctx context.Context, exitCode int) {
 	t.logExit(ctx, exitCode)
 	os.Exit(exitCode)

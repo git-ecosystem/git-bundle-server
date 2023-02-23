@@ -41,7 +41,7 @@ func (webServerCmd) Description() string {
 	return `Manage the web server hosting bundle content`
 }
 
-func (w *webServerCmd) getDaemonConfig() (*daemon.DaemonConfig, error) {
+func (w *webServerCmd) getDaemonConfig(ctx context.Context) (*daemon.DaemonConfig, error) {
 	// Find git-bundle-web-server
 	// First, search for it on the path
 	programPath, err := exec.LookPath("git-bundle-web-server")
@@ -50,25 +50,25 @@ func (w *webServerCmd) getDaemonConfig() (*daemon.DaemonConfig, error) {
 			// Result is a relative path
 			programPath, err = filepath.Abs(programPath)
 			if err != nil {
-				return nil, fmt.Errorf("could not get absolute path to program: %w", err)
+				return nil, w.logger.Errorf(ctx, "could not get absolute path to program: %w", err)
 			}
 		} else {
 			// Fall back on looking for it in the same directory as the currently-running executable
 			exePath, err := os.Executable()
 			if err != nil {
-				return nil, fmt.Errorf("failed to get path to current executable: %w", err)
+				return nil, w.logger.Errorf(ctx, "failed to get path to current executable: %w", err)
 			}
 			exeDir := filepath.Dir(exePath)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get parent dir of current executable: %w", err)
+				return nil, w.logger.Errorf(ctx, "failed to get parent dir of current executable: %w", err)
 			}
 
 			programPath = filepath.Join(exeDir, "git-bundle-web-server")
 			programExists, err := w.fileSystem.FileExists(programPath)
 			if err != nil {
-				return nil, fmt.Errorf("could not determine whether path to 'git-bundle-web-server' exists: %w", err)
+				return nil, w.logger.Errorf(ctx, "could not determine whether path to 'git-bundle-web-server' exists: %w", err)
 			} else if !programExists {
-				return nil, fmt.Errorf("could not find path to 'git-bundle-web-server'")
+				return nil, w.logger.Errorf(ctx, "could not find path to 'git-bundle-web-server'")
 			}
 		}
 	}
@@ -99,12 +99,12 @@ func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 
 	d, err := daemon.NewDaemonProvider(w.logger, w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
-	config, err := w.getDaemonConfig()
+	config, err := w.getDaemonConfig(ctx)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
 	// Configure flags
@@ -131,17 +131,17 @@ func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 	})
 	if loopErr != nil {
 		// Error happened in 'Visit'
-		return loopErr
+		return w.logger.Error(ctx, loopErr)
 	}
 
 	err = d.Create(ctx, config, *force)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
 	err = d.Start(ctx, config.Label)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
 	return nil
@@ -155,23 +155,23 @@ func (w *webServerCmd) stopServer(ctx context.Context, args []string) error {
 
 	d, err := daemon.NewDaemonProvider(w.logger, w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
-	config, err := w.getDaemonConfig()
+	config, err := w.getDaemonConfig(ctx)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
 	err = d.Stop(ctx, config.Label)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
 	if *remove {
 		err = d.Remove(ctx, config.Label)
 		if err != nil {
-			return err
+			return w.logger.Error(ctx, err)
 		}
 	}
 

@@ -38,18 +38,18 @@ func (u *updateCmd) Run(ctx context.Context, args []string) error {
 
 	repo, err := core.CreateRepository(*route)
 	if err != nil {
-		return err
+		return u.logger.Error(ctx, err)
 	}
 
 	list, err := bundles.GetBundleList(repo)
 	if err != nil {
-		return fmt.Errorf("failed to load bundle list: %w", err)
+		return u.logger.Errorf(ctx, "failed to load bundle list: %w", err)
 	}
 
 	fmt.Printf("Creating new incremental bundle\n")
 	bundle, err := bundles.CreateIncrementalBundle(repo, list)
 	if err != nil {
-		return err
+		return u.logger.Error(ctx, err)
 	}
 
 	// Nothing new!
@@ -62,13 +62,13 @@ func (u *updateCmd) Run(ctx context.Context, args []string) error {
 	fmt.Printf("Collapsing bundle list\n")
 	err = bundles.CollapseList(repo, list)
 	if err != nil {
-		return err
+		return u.logger.Error(ctx, err)
 	}
 
 	fmt.Printf("Writing updated bundle list\n")
 	listErr := bundles.WriteBundleList(list, repo)
 	if listErr != nil {
-		return fmt.Errorf("failed to write bundle list: %w", listErr)
+		return u.logger.Errorf(ctx, "failed to write bundle list: %w", listErr)
 	}
 
 	return nil

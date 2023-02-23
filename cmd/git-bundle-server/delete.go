@@ -36,22 +36,22 @@ func (d *deleteCmd) Run(ctx context.Context, args []string) error {
 
 	repo, err := core.CreateRepository(*route)
 	if err != nil {
-		return err
+		return d.logger.Error(ctx, err)
 	}
 
 	err = core.RemoveRoute(*route)
 	if err != nil {
-		return err
+		return d.logger.Error(ctx, err)
 	}
 
 	err = os.RemoveAll(repo.WebDir)
 	if err != nil {
-		return err
+		return d.logger.Error(ctx, err)
 	}
 
 	err = os.RemoveAll(repo.RepoDir)
 	if err != nil {
-		return err
+		return d.logger.Error(ctx, err)
 	}
 
 	return nil

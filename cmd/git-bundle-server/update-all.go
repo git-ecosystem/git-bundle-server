@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -34,7 +33,7 @@ For every configured route, run 'git-bundle-server update <options> <route>'.`
 func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
 	user, err := common.NewUserProvider().CurrentUser()
 	if err != nil {
-		return err
+		return u.logger.Error(ctx, err)
 	}
 	fs := common.NewFileSystem()
 
@@ -43,12 +42,12 @@ func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
 
 	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to get path to execuable: %w", err)
+		return u.logger.Errorf(ctx, "failed to get path to execuable: %w", err)
 	}
 
 	repos, err := core.GetRepositories(user, fs)
 	if err != nil {
-		return err
+		return u.logger.Error(ctx, err)
 	}
 
 	subargs := []string{"update", ""}
@@ -62,12 +61,12 @@ func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
 
 		err := cmd.Start()
 		if err != nil {
-			return fmt.Errorf("git command failed to start: %w", err)
+			return u.logger.Errorf(ctx, "git command failed to start: %w", err)
 		}
 
 		err = cmd.Wait()
 		if err != nil {
-			return fmt.Errorf("git command returned a failure: %w", err)
+			return u.logger.Errorf(ctx, "git command returned a failure: %w", err)
 		}
 	}
 

@@ -7,7 +7,13 @@ import (
 	"runtime/debug"
 )
 
+// Type alias used to keep track of whether an error was already logged deeper
+// in the call stack.
+type loggedError error
+
 type TraceLogger interface {
+	Error(ctx context.Context, err error) error
+	Errorf(ctx context.Context, format string, a ...any) error
 	Exit(ctx context.Context, exitCode int)
 	Fatal(ctx context.Context, err error)
 	Fatalf(ctx context.Context, format string, a ...any)

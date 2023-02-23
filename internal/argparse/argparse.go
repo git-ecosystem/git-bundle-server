@@ -145,6 +145,7 @@ func (a *argParser) Parse(ctx context.Context, args []string) {
 	if err != nil {
 		// The error was already printed (via a.FlagSet.Usage()), so we
 		// just need to exit
+		a.logger.Error(ctx, err)
 		a.logger.Exit(ctx, usageExitCode)
 	}
 
@@ -221,5 +222,6 @@ func (a *argParser) Usage(ctx context.Context, errFmt string, args ...any) {
 	fmt.Fprintf(a.FlagSet.Output(), errFmt+"\n", args...)
 	a.FlagSet.Usage()
 
+	a.logger.Errorf(ctx, errFmt, args...)
 	a.logger.Exit(ctx, usageExitCode)
 }
