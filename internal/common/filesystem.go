@@ -4,9 +4,15 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"syscall"
+)
+
+const (
+	DefaultFilePermissions fs.FileMode = 0o600
+	DefaultDirPermissions  fs.FileMode = 0o755
 )
 
 type FileSystem interface {
@@ -36,12 +42,12 @@ func (f *fileSystem) FileExists(filename string) (bool, error) {
 func (f *fileSystem) WriteFile(filename string, content []byte) error {
 	// Get filename parent path
 	parentDir := path.Dir(filename)
-	err := os.MkdirAll(parentDir, 0o755)
+	err := os.MkdirAll(parentDir, DefaultDirPermissions)
 	if err != nil {
 		return fmt.Errorf("error creating parent directories: %w", err)
 	}
 
-	err = os.WriteFile(filename, content, 0o644)
+	err = os.WriteFile(filename, content, DefaultFilePermissions)
 	if err != nil {
 		return fmt.Errorf("could not write file: %w", err)
 	}
