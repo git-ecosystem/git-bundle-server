@@ -6,6 +6,7 @@ import (
 	"os/user"
 	"runtime"
 
+	"github.com/github/git-bundle-server/internal/cmd"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -121,8 +122,18 @@ type MockCommandExecutor struct {
 	mock.Mock
 }
 
-func (m *MockCommandExecutor) Run(ctx context.Context, command string, args ...string) (int, error) {
+func (m *MockCommandExecutor) RunStdout(ctx context.Context, command string, args ...string) (int, error) {
 	fnArgs := m.Called(ctx, command, args)
+	return fnArgs.Int(0), fnArgs.Error(1)
+}
+
+func (m *MockCommandExecutor) RunQuiet(ctx context.Context, command string, args ...string) (int, error) {
+	fnArgs := m.Called(ctx, command, args)
+	return fnArgs.Int(0), fnArgs.Error(1)
+}
+
+func (m *MockCommandExecutor) Run(ctx context.Context, command string, args []string, settings ...cmd.Setting) (int, error) {
+	fnArgs := m.Called(ctx, command, args, settings)
 	return fnArgs.Int(0), fnArgs.Error(1)
 }
 
