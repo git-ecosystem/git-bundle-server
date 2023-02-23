@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/github/git-bundle-server/internal/common"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
 const serviceTemplate string = `[Unit]
@@ -22,17 +23,20 @@ ExecStart={{sq_escape .Program}}{{range .Arguments}} {{sq_escape .}}{{end}}
 const SystemdUnitNotInstalledErrorCode int = 5
 
 type systemd struct {
+	logger     log.TraceLogger
 	user       common.UserProvider
 	cmdExec    common.CommandExecutor
 	fileSystem common.FileSystem
 }
 
 func NewSystemdProvider(
+	l log.TraceLogger,
 	u common.UserProvider,
 	c common.CommandExecutor,
 	fs common.FileSystem,
 ) DaemonProvider {
 	return &systemd{
+		logger:     l,
 		user:       u,
 		cmdExec:    c,
 		fileSystem: fs,

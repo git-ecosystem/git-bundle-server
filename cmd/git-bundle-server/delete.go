@@ -6,12 +6,17 @@ import (
 
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
-type deleteCmd struct{}
+type deleteCmd struct {
+	logger log.TraceLogger
+}
 
-func NewDeleteCommand() argparse.Subcommand {
-	return &deleteCmd{}
+func NewDeleteCommand(logger log.TraceLogger) argparse.Subcommand {
+	return &deleteCmd{
+		logger: logger,
+	}
 }
 
 func (deleteCmd) Name() string {
@@ -24,8 +29,8 @@ Remove the configuration for the given '<route>' and delete its repository
 data.`
 }
 
-func (deleteCmd) Run(ctx context.Context, args []string) error {
-	parser := argparse.NewArgParser("git-bundle-server delete <route>")
+func (d *deleteCmd) Run(ctx context.Context, args []string) error {
+	parser := argparse.NewArgParser(d.logger, "git-bundle-server delete <route>")
 	route := parser.PositionalString("route", "the route to delete")
 	parser.Parse(ctx, args)
 

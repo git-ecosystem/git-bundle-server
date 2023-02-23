@@ -140,7 +140,7 @@ func TestSystemd_Create(t *testing.T) {
 
 	ctx := context.Background()
 
-	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+	systemd := daemon.NewSystemdProvider(nil, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range systemdCreateBehaviorTests {
 		forceArg := tt.force.ToBoolList()
@@ -248,7 +248,7 @@ func TestSystemd_Start(t *testing.T) {
 
 	ctx := context.Background()
 
-	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, nil)
+	systemd := daemon.NewSystemdProvider(nil, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
@@ -292,7 +292,7 @@ func TestSystemd_Stop(t *testing.T) {
 
 	ctx := context.Background()
 
-	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, nil)
+	systemd := daemon.NewSystemdProvider(nil, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
@@ -388,7 +388,7 @@ func TestSystemd_Remove(t *testing.T) {
 
 	ctx := context.Background()
 
-	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+	systemd := daemon.NewSystemdProvider(nil, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range systemdRemoveTests {
 		t.Run(tt.title, func(t *testing.T) {

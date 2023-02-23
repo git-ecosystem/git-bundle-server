@@ -13,17 +13,20 @@ import (
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/daemon"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
 type webServerCmd struct {
+	logger     log.TraceLogger
 	user       common.UserProvider
 	cmdExec    common.CommandExecutor
 	fileSystem common.FileSystem
 }
 
-func NewWebServerCommand() argparse.Subcommand {
+func NewWebServerCommand(logger log.TraceLogger) argparse.Subcommand {
 	// Create subcommand-specific dependencies
 	return &webServerCmd{
+		logger:     logger,
 		user:       common.NewUserProvider(),
 		cmdExec:    common.NewCommandExecutor(),
 		fileSystem: common.NewFileSystem(),
@@ -79,7 +82,7 @@ func (w *webServerCmd) getDaemonConfig() (*daemon.DaemonConfig, error) {
 
 func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 	// Parse subcommand arguments
-	parser := argparse.NewArgParser("git-bundle-server web-server start [-f|--force]")
+	parser := argparse.NewArgParser(w.logger, "git-bundle-server web-server start [-f|--force]")
 
 	// Args for 'git-bundle-server web-server start'
 	force := parser.Bool("force", false, "Force reconfiguration of the web server daemon")
@@ -94,7 +97,7 @@ func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 	parser.Parse(ctx, args)
 	validate(ctx)
 
-	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
+	d, err := daemon.NewDaemonProvider(w.logger, w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
 		return err
 	}
@@ -146,11 +149,11 @@ func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 
 func (w *webServerCmd) stopServer(ctx context.Context, args []string) error {
 	// Parse subcommand arguments
-	parser := argparse.NewArgParser("git-bundle-server web-server stop [--remove]")
+	parser := argparse.NewArgParser(w.logger, "git-bundle-server web-server stop [--remove]")
 	remove := parser.Bool("remove", false, "Remove the web server daemon configuration from the system after stopping")
 	parser.Parse(ctx, args)
 
-	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
+	d, err := daemon.NewDaemonProvider(w.logger, w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
 		return err
 	}
@@ -177,7 +180,7 @@ func (w *webServerCmd) stopServer(ctx context.Context, args []string) error {
 
 func (w *webServerCmd) Run(ctx context.Context, args []string) error {
 	// Parse command arguments
-	parser := argparse.NewArgParser("git-bundle-server web-server (start|stop) <options>")
+	parser := argparse.NewArgParser(w.logger, "git-bundle-server web-server (start|stop) <options>")
 	parser.Subcommand(argparse.NewSubcommand("start", "Start the web server", w.startServer))
 	parser.Subcommand(argparse.NewSubcommand("stop", "Stop the web server", w.stopServer))
 	parser.Parse(ctx, args)

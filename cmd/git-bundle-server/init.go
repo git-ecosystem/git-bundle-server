@@ -8,12 +8,17 @@ import (
 	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/git"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
-type initCmd struct{}
+type initCmd struct {
+	logger log.TraceLogger
+}
 
-func NewInitCommand() argparse.Subcommand {
-	return &initCmd{}
+func NewInitCommand(logger log.TraceLogger) argparse.Subcommand {
+	return &initCmd{
+		logger: logger,
+	}
 }
 
 func (initCmd) Name() string {
@@ -26,8 +31,8 @@ Initialize a repository by cloning a bare repo from '<url>', whose bundles
 should be hosted at '<route>'.`
 }
 
-func (initCmd) Run(ctx context.Context, args []string) error {
-	parser := argparse.NewArgParser("git-bundle-server init <url> <route>")
+func (i *initCmd) Run(ctx context.Context, args []string) error {
+	parser := argparse.NewArgParser(i.logger, "git-bundle-server init <url> <route>")
 	url := parser.PositionalString("url", "the URL of a repository to clone")
 	// TODO: allow parsing <route> out of <url>
 	route := parser.PositionalString("route", "the route to host the specified repo")

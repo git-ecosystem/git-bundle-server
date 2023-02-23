@@ -7,12 +7,17 @@ import (
 
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
-type startCmd struct{}
+type startCmd struct {
+	logger log.TraceLogger
+}
 
-func NewStartCommand() argparse.Subcommand {
-	return &startCmd{}
+func NewStartCommand(logger log.TraceLogger) argparse.Subcommand {
+	return &startCmd{
+		logger: logger,
+	}
 }
 
 func (startCmd) Name() string {
@@ -25,8 +30,8 @@ Start computing bundles and serving content for the repository at the
 specified '<route>'.`
 }
 
-func (startCmd) Run(ctx context.Context, args []string) error {
-	parser := argparse.NewArgParser("git-bundle-server start <route>")
+func (s *startCmd) Run(ctx context.Context, args []string) error {
+	parser := argparse.NewArgParser(s.logger, "git-bundle-server start <route>")
 	route := parser.PositionalString("route", "the route for which bundles should be generated")
 	parser.Parse(ctx, args)
 

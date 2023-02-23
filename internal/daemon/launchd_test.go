@@ -240,7 +240,7 @@ func TestLaunchd_Create(t *testing.T) {
 
 	ctx := context.Background()
 
-	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+	launchd := daemon.NewLaunchdProvider(nil, testUserProvider, testCommandExecutor, testFileSystem)
 
 	// Verify launchd commands called
 	for _, tt := range launchdCreateBehaviorTests {
@@ -367,7 +367,7 @@ func TestLaunchd_Start(t *testing.T) {
 
 	ctx := context.Background()
 
-	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
+	launchd := daemon.NewLaunchdProvider(nil, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: launchctl succeeds
 	t.Run("Calls correct launchctl command", func(t *testing.T) {
@@ -448,7 +448,7 @@ func TestLaunchd_Stop(t *testing.T) {
 
 	ctx := context.Background()
 
-	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
+	launchd := daemon.NewLaunchdProvider(nil, testUserProvider, testCommandExecutor, nil)
 
 	for _, tt := range launchdStopTests {
 		t.Run(tt.title, func(t *testing.T) {
@@ -540,7 +540,7 @@ func TestLaunchd_Remove(t *testing.T) {
 
 	ctx := context.Background()
 
-	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+	launchd := daemon.NewLaunchdProvider(nil, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range launchdRemoveTests {
 		t.Run(tt.title, func(t *testing.T) {

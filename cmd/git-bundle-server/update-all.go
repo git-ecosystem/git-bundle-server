@@ -9,12 +9,17 @@ import (
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
-type updateAllCmd struct{}
+type updateAllCmd struct {
+	logger log.TraceLogger
+}
 
-func NewUpdateAllCommand() argparse.Subcommand {
-	return &updateAllCmd{}
+func NewUpdateAllCommand(logger log.TraceLogger) argparse.Subcommand {
+	return &updateAllCmd{
+		logger: logger,
+	}
 }
 
 func (updateAllCmd) Name() string {
@@ -26,14 +31,14 @@ func (updateAllCmd) Description() string {
 For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
-func (updateAllCmd) Run(ctx context.Context, args []string) error {
+func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
 	user, err := common.NewUserProvider().CurrentUser()
 	if err != nil {
 		return err
 	}
 	fs := common.NewFileSystem()
 
-	parser := argparse.NewArgParser("git-bundle-server update-all")
+	parser := argparse.NewArgParser(u.logger, "git-bundle-server update-all")
 	parser.Parse(ctx, args)
 
 	exe, err := os.Executable()

@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/github/git-bundle-server/internal/common"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
 type DaemonConfig struct {
@@ -26,6 +27,7 @@ type DaemonProvider interface {
 }
 
 func NewDaemonProvider(
+	l log.TraceLogger,
 	u common.UserProvider,
 	c common.CommandExecutor,
 	fs common.FileSystem,
@@ -33,10 +35,10 @@ func NewDaemonProvider(
 	switch thisOs := runtime.GOOS; thisOs {
 	case "linux":
 		// Use systemd/systemctl
-		return NewSystemdProvider(u, c, fs), nil
+		return NewSystemdProvider(l, u, c, fs), nil
 	case "darwin":
 		// Use launchd/launchctl
-		return NewLaunchdProvider(u, c, fs), nil
+		return NewLaunchdProvider(l, u, c, fs), nil
 	default:
 		return nil, fmt.Errorf("cannot configure daemon handler for OS '%s'", thisOs)
 	}

@@ -13,7 +13,7 @@ import (
 
 func main() {
 	log.WithTraceLogger(context.Background(), func(ctx context.Context, logger log.TraceLogger) {
-		parser := argparse.NewArgParser("git-bundle-web-server [--port <port>] [--cert <filename> --key <filename>]")
+		parser := argparse.NewArgParser(logger, "git-bundle-web-server [--port <port>] [--cert <filename> --key <filename>]")
 		flags, validate := utils.WebServerFlags(parser)
 		flags.VisitAll(func(f *flag.Flag) {
 			parser.Var(f.Value, f.Name, f.Usage)
@@ -28,7 +28,7 @@ func main() {
 		key := utils.GetFlagValue[string](parser, "key")
 
 		// Configure the server
-		bundleServer := NewBundleWebServer(port, cert, key)
+		bundleServer := NewBundleWebServer(logger, port, cert, key)
 
 		// Start the server asynchronously
 		bundleServer.StartServerAsync(ctx)

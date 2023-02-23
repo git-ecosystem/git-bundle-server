@@ -13,16 +13,21 @@ import (
 
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
+	tracelog "github.com/github/git-bundle-server/internal/log"
 )
 
 type bundleWebServer struct {
+	logger             tracelog.TraceLogger
 	server             *http.Server
 	serverWaitGroup    *sync.WaitGroup
 	listenAndServeFunc func() error
 }
 
-func NewBundleWebServer(port string, certFile string, keyFile string) *bundleWebServer {
+func NewBundleWebServer(logger tracelog.TraceLogger,
+	port string, certFile string, keyFile string,
+) *bundleWebServer {
 	bundleServer := &bundleWebServer{
+		logger:          logger,
 		serverWaitGroup: &sync.WaitGroup{},
 	}
 

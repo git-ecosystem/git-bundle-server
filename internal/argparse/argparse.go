@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/github/git-bundle-server/internal/log"
 )
 
 // For consistency with 'flag', use 2 as the usage-related error code
@@ -30,10 +32,11 @@ type argParser struct {
 	// Post-parsing
 	selectedSubcommand Subcommand
 
+	logger log.TraceLogger
 	flag.FlagSet
 }
 
-func NewArgParser(usageString string) *argParser {
+func NewArgParser(logger log.TraceLogger, usageString string) *argParser {
 	flagSet := flag.NewFlagSet("", flag.ContinueOnError)
 
 	a := &argParser{
@@ -41,6 +44,7 @@ func NewArgParser(usageString string) *argParser {
 		parsed:      false,
 		argOffset:   0,
 		subcommands: make(map[string]Subcommand),
+		logger:      logger,
 		FlagSet:     *flagSet,
 	}
 
