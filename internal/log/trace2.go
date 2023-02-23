@@ -32,7 +32,13 @@ type ctxKey int
 
 const (
 	sidId ctxKey = iota
+	parentRegionId
 )
+
+type trace2Region struct {
+	level  int
+	tStart time.Time
+}
 
 type Trace2 struct {
 	logger *zap.Logger
@@ -105,24 +111,51 @@ func (l fieldList) withTime() fieldList {
 	return append(l, zap.Float64("t_abs", time.Since(globalStart).Seconds()))
 }
 
+func (l fieldList) withNesting(r trace2Region, includeTRel bool) fieldList {
+	l = append(l, zap.Int("nesting", r.level))
+	if includeTRel {
+		l = append(l, zap.Float64("t_rel", time.Since(r.tStart).Seconds()))
+	}
+	return l
+}
+
 func (l fieldList) with(f ...zap.Field) fieldList {
 	return append(l, f...)
+}
+
+func getContextValue[T any](
+	ctx context.Context,
+	key ctxKey,
+) (bool, T) {
+	var value T
+	haveValue := false
+	valueAny := ctx.Value(key)
+	if valueAny != nil {
+		value, haveValue = valueAny.(T)
+	}
+	return haveValue, value
+}
+
+func getOrSetContextValue[T any](
+	ctx context.Context,
+	key ctxKey,
+	newValueFunc func() T,
+) (context.Context, T) {
+	var value T
+	haveValue, value := getContextValue[T](ctx, key)
+	if !haveValue {
+		value = newValueFunc()
+		ctx = context.WithValue(ctx, key, value)
+	}
+
+	return ctx, value
 }
 
 func (t *Trace2) sharedFields(ctx context.Context) (context.Context, fieldList) {
 	fields := fieldList{}
 
 	// Get the session ID
-	var sid uuid.UUID
-	haveSid := false
-	sidAny := ctx.Value(sidId)
-	if sidAny != nil {
-		sid, haveSid = sidAny.(uuid.UUID)
-	}
-	if !haveSid {
-		sid = uuid.New()
-		ctx = context.WithValue(ctx, sidId, sid)
-	}
+	ctx, sid := getOrSetContextValue(ctx, sidId, uuid.New)
 	fields = append(fields, zap.String("sid", sid.String()))
 
 	// Hardcode the thread to "main" because Go doesn't like to share its
@@ -164,6 +197,33 @@ func (t *Trace2) logExit(ctx context.Context, exitCode int) {
 	t.logger.Info("atexit", fields.withTime()...)
 
 	t.logger.Sync()
+}
+
+func (t *Trace2) Region(ctx context.Context, category string, label string) (context.Context, func()) {
+	ctx, sharedFields := t.sharedFields(ctx)
+
+	// Get the nesting level & increment
+	hasParentRegion, nesting := getContextValue[trace2Region](ctx, parentRegionId)
+	if !hasParentRegion {
+		nesting = trace2Region{
+			level:  0,
+			tStart: time.Now(),
+		}
+	} else {
+		nesting.level++
+		nesting.tStart = time.Now()
+	}
+	ctx = context.WithValue(ctx, parentRegionId, nesting)
+
+	regionFields := fieldList{
+		zap.String("category", category),
+		zap.String("label", label),
+	}
+
+	t.logger.Debug("region_enter", sharedFields.withNesting(nesting, false).with(regionFields...)...)
+	return ctx, func() {
+		t.logger.Debug("region_leave", sharedFields.withNesting(nesting, true).with(regionFields...)...)
+	}
 }
 
 func (t *Trace2) LogCommand(ctx context.Context, commandName string) context.Context {
