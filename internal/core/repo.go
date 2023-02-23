@@ -39,6 +39,9 @@ func NewRepositoryProvider(logger log.TraceLogger,
 }
 
 func (r *repoProvider) CreateRepository(ctx context.Context, route string) (*Repository, error) {
+	ctx, exitRegion := r.logger.Region(ctx, "repo", "create_repo")
+	defer exitRegion()
+
 	user, err := r.user.CurrentUser()
 	if err != nil {
 		return nil, err
@@ -79,6 +82,9 @@ func (r *repoProvider) CreateRepository(ctx context.Context, route string) (*Rep
 }
 
 func (r *repoProvider) RemoveRoute(ctx context.Context, route string) error {
+	ctx, exitRegion := r.logger.Region(ctx, "repo", "remove_route")
+	defer exitRegion()
+
 	repos, err := r.GetRepositories(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to parse routes file: %w", err)
@@ -112,6 +118,9 @@ func (r *repoProvider) writeRouteFile(repos map[string]Repository) error {
 }
 
 func (r *repoProvider) GetRepositories(ctx context.Context) (map[string]Repository, error) {
+	ctx, exitRegion := r.logger.Region(ctx, "repo", "get_repos") //lint:ignore SA4006 keep ctx up-to-date
+	defer exitRegion()
+
 	user, err := r.user.CurrentUser()
 	if err != nil {
 		return nil, err
