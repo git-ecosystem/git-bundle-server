@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/github/git-bundle-server/internal/cmd"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/log"
 	"github.com/github/git-bundle-server/internal/utils"
@@ -94,14 +95,14 @@ func (c *launchdConfig) toPlist() *plist {
 type launchd struct {
 	logger     log.TraceLogger
 	user       common.UserProvider
-	cmdExec    common.CommandExecutor
+	cmdExec    cmd.CommandExecutor
 	fileSystem common.FileSystem
 }
 
 func NewLaunchdProvider(
 	l log.TraceLogger,
 	u common.UserProvider,
-	c common.CommandExecutor,
+	c cmd.CommandExecutor,
 	fs common.FileSystem,
 ) DaemonProvider {
 	return &launchd{

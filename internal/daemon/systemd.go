@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/github/git-bundle-server/internal/cmd"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/log"
 )
@@ -25,14 +26,14 @@ const SystemdUnitNotInstalledErrorCode int = 5
 type systemd struct {
 	logger     log.TraceLogger
 	user       common.UserProvider
-	cmdExec    common.CommandExecutor
+	cmdExec    cmd.CommandExecutor
 	fileSystem common.FileSystem
 }
 
 func NewSystemdProvider(
 	l log.TraceLogger,
 	u common.UserProvider,
-	c common.CommandExecutor,
+	c cmd.CommandExecutor,
 	fs common.FileSystem,
 ) DaemonProvider {
 	return &systemd{

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/github/git-bundle-server/internal/cmd"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/log"
 )
@@ -29,7 +30,7 @@ type DaemonProvider interface {
 func NewDaemonProvider(
 	l log.TraceLogger,
 	u common.UserProvider,
-	c common.CommandExecutor,
+	c cmd.CommandExecutor,
 	fs common.FileSystem,
 ) (DaemonProvider, error) {
 	switch thisOs := runtime.GOOS; thisOs {
