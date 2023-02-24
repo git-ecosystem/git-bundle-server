@@ -58,12 +58,15 @@ func (c *commandExecutor) applyOptions(ctx context.Context, cmd *exec.Cmd, setti
 }
 
 func (c *commandExecutor) runCmd(ctx context.Context, cmd *exec.Cmd) (int, error) {
+	childReady, childExit := c.logger.ChildProcess(ctx, cmd)
 	err := cmd.Start()
+	childReady(err)
 	if err != nil {
 		return -1, c.logger.Errorf(ctx, "command failed to start: %w", err)
 	}
 
 	err = cmd.Wait()
+	childExit()
 	_, isExitError := err.(*exec.ExitError)
 
 	// If the command succeeded, or ran to completion but returned a nonzero

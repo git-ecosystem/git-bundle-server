@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,7 +43,8 @@ type trace2Region struct {
 }
 
 type Trace2 struct {
-	logger *zap.Logger
+	logger      *zap.Logger
+	lastChildId int32
 }
 
 func getTrace2OutputPaths(envKey string) []string {
@@ -104,7 +107,8 @@ func createTrace2ZapLogger() *zap.Logger {
 
 func NewTrace2() traceLoggerInternal {
 	return &Trace2{
-		logger: createTrace2ZapLogger(),
+		logger:      createTrace2ZapLogger(),
+		lastChildId: -1,
 	}
 }
 
@@ -227,6 +231,47 @@ func (t *Trace2) Region(ctx context.Context, category string, label string) (con
 	return ctx, func() {
 		t.logger.Debug("region_leave", sharedFields.withNesting(nesting, true).with(regionFields...)...)
 	}
+}
+
+func (t *Trace2) ChildProcess(ctx context.Context, cmd *exec.Cmd) (func(error), func()) {
+	var startTime time.Time
+	_, sharedFields := t.sharedFields(ctx)
+
+	// Get the child id by atomically incrementing the lastChildId
+	childId := atomic.AddInt32(&t.lastChildId, 1)
+	t.logger.Debug("child_start", sharedFields.with(
+		zap.Int32("child_id", childId),
+		zap.String("child_class", "?"),
+		zap.Bool("use_shell", false),
+		zap.Strings("argv", cmd.Args),
+	)...)
+
+	childReady := func(execError error) {
+		ready := zap.String("ready", "ready")
+		if execError != nil {
+			ready = zap.String("ready", "error")
+		}
+		t.logger.Debug("child_ready", sharedFields.with(
+			zap.Int32("child_id", childId),
+			zap.Int("pid", cmd.Process.Pid),
+			ready,
+			zap.Strings("argv", cmd.Args),
+		)...)
+	}
+
+	childExit := func() {
+		t.logger.Debug("child_exit", sharedFields.with(
+			zap.Int32("child_id", childId),
+			zap.Int("pid", cmd.ProcessState.Pid()),
+			zap.Int("code", cmd.ProcessState.ExitCode()),
+			zap.Duration("t_rel", time.Since(startTime)),
+		)...)
+	}
+
+	// Approximate the process runtime by starting the timer now
+	startTime = time.Now()
+
+	return childReady, childExit
 }
 
 func (t *Trace2) LogCommand(ctx context.Context, commandName string) context.Context {

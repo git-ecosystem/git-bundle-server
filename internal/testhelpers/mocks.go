@@ -3,6 +3,7 @@ package testhelpers
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"os/user"
 	"runtime"
 
@@ -60,6 +61,14 @@ func (l *MockTraceLogger) Region(ctx context.Context, category string, label str
 		fnArgs = l.Called(ctx, category, label)
 	}
 	return mockWithDefault(fnArgs, 0, ctx), mockWithDefault(fnArgs, 1, func() {})
+}
+
+func (l *MockTraceLogger) ChildProcess(ctx context.Context, cmd *exec.Cmd) (func(error), func()) {
+	fnArgs := mock.Arguments{}
+	if methodIsMocked(&l.Mock) {
+		fnArgs = l.Called(ctx, cmd)
+	}
+	return mockWithDefault(fnArgs, 0, func(error) {}), mockWithDefault(fnArgs, 1, func() {})
 }
 
 func (l *MockTraceLogger) LogCommand(ctx context.Context, commandName string) context.Context {
