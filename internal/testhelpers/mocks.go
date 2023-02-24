@@ -150,6 +150,11 @@ type MockFileSystem struct {
 	mock.Mock
 }
 
+func (m *MockFileSystem) GetLocalExecutable(name string) (string, error) {
+	fnArgs := m.Called(name)
+	return fnArgs.String(0), fnArgs.Error(1)
+}
+
 func (m *MockFileSystem) FileExists(filename string) (bool, error) {
 	fnArgs := m.Called(filename)
 	return fnArgs.Bool(0), fnArgs.Error(1)

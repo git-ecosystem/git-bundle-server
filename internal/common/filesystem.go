@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"syscall"
 )
 
@@ -16,6 +17,8 @@ const (
 )
 
 type FileSystem interface {
+	GetLocalExecutable(name string) (string, error)
+
 	FileExists(filename string) (bool, error)
 	WriteFile(filename string, content []byte) error
 	DeleteFile(filename string) (bool, error)
@@ -26,6 +29,27 @@ type fileSystem struct{}
 
 func NewFileSystem() FileSystem {
 	return &fileSystem{}
+}
+
+func (f *fileSystem) GetLocalExecutable(name string) (string, error) {
+	thisExePath, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("failed to get path to current executable: %w", err)
+	}
+	exeDir := filepath.Dir(thisExePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get parent dir of current executable: %w", err)
+	}
+
+	programPath := filepath.Join(exeDir, name)
+	programExists, err := f.FileExists(programPath)
+	if err != nil {
+		return "", fmt.Errorf("could not determine whether path to '%s' exists: %w", name, err)
+	} else if !programExists {
+		return "", fmt.Errorf("could not find path to '%s'", name)
+	}
+
+	return programPath, nil
 }
 
 func (f *fileSystem) FileExists(filename string) (bool, error) {
