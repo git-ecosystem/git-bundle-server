@@ -66,6 +66,9 @@ func (b *bundleWebServer) parseRoute(ctx context.Context, path string) (string, 
 func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx, exitRegion := b.logger.Region(ctx, "http", "serve")
+	defer exitRegion()
+
 	path := r.URL.Path
 	owner, repo, file, err := b.parseRoute(ctx, path)
 	if err != nil {
