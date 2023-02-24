@@ -2,31 +2,36 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os/exec"
+
+	"github.com/github/git-bundle-server/internal/log"
 )
 
 type CommandExecutor interface {
 	Run(ctx context.Context, command string, args ...string) (int, error)
 }
 
-type commandExecutor struct{}
+type commandExecutor struct {
+	logger log.TraceLogger
+}
 
-func NewCommandExecutor() CommandExecutor {
-	return &commandExecutor{}
+func NewCommandExecutor(l log.TraceLogger) CommandExecutor {
+	return &commandExecutor{
+		logger: l,
+	}
 }
 
 func (c *commandExecutor) Run(ctx context.Context, command string, args ...string) (int, error) {
 	exe, err := exec.LookPath(command)
 	if err != nil {
-		return -1, fmt.Errorf("failed to find '%s' on the path: %w", command, err)
+		return -1, c.logger.Errorf(ctx, "failed to find '%s' on the path: %w", command, err)
 	}
 
 	cmd := exec.Command(exe, args...)
 
 	err = cmd.Start()
 	if err != nil {
-		return -1, fmt.Errorf("command failed to start: %w", err)
+		return -1, c.logger.Errorf(ctx, "command failed to start: %w", err)
 	}
 
 	err = cmd.Wait()
@@ -37,6 +42,6 @@ func (c *commandExecutor) Run(ctx context.Context, command string, args ...strin
 	if err == nil || isExitError {
 		return cmd.ProcessState.ExitCode(), nil
 	} else {
-		return -1, err
+		return -1, c.logger.Error(ctx, err)
 	}
 }

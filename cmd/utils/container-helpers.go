@@ -17,7 +17,7 @@ func BuildGitBundleServerContainer(logger log.TraceLogger) *DependencyContainer 
 		return common.NewUserProvider()
 	})
 	registerDependency(container, func(ctx context.Context) cmd.CommandExecutor {
-		return cmd.NewCommandExecutor()
+		return cmd.NewCommandExecutor(logger)
 	})
 	registerDependency(container, func(ctx context.Context) common.FileSystem {
 		return common.NewFileSystem()
