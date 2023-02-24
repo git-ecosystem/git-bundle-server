@@ -226,6 +226,7 @@ var launchdCreatePlistTests = []struct {
 
 func TestLaunchd_Create(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -240,7 +241,7 @@ func TestLaunchd_Create(t *testing.T) {
 
 	ctx := context.Background()
 
-	launchd := daemon.NewLaunchdProvider(nil, testUserProvider, testCommandExecutor, testFileSystem)
+	launchd := daemon.NewLaunchdProvider(testLogger, testUserProvider, testCommandExecutor, testFileSystem)
 
 	// Verify launchd commands called
 	for _, tt := range launchdCreateBehaviorTests {
@@ -356,6 +357,7 @@ func TestLaunchd_Create(t *testing.T) {
 
 func TestLaunchd_Start(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -367,7 +369,7 @@ func TestLaunchd_Start(t *testing.T) {
 
 	ctx := context.Background()
 
-	launchd := daemon.NewLaunchdProvider(nil, testUserProvider, testCommandExecutor, nil)
+	launchd := daemon.NewLaunchdProvider(testLogger, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: launchctl succeeds
 	t.Run("Calls correct launchctl command", func(t *testing.T) {
@@ -437,6 +439,7 @@ var launchdStopTests = []struct {
 
 func TestLaunchd_Stop(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -448,7 +451,7 @@ func TestLaunchd_Stop(t *testing.T) {
 
 	ctx := context.Background()
 
-	launchd := daemon.NewLaunchdProvider(nil, testUserProvider, testCommandExecutor, nil)
+	launchd := daemon.NewLaunchdProvider(testLogger, testUserProvider, testCommandExecutor, nil)
 
 	for _, tt := range launchdStopTests {
 		t.Run(tt.title, func(t *testing.T) {
@@ -527,6 +530,7 @@ var launchdRemoveTests = []struct {
 
 func TestLaunchd_Remove(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -540,7 +544,7 @@ func TestLaunchd_Remove(t *testing.T) {
 
 	ctx := context.Background()
 
-	launchd := daemon.NewLaunchdProvider(nil, testUserProvider, testCommandExecutor, testFileSystem)
+	launchd := daemon.NewLaunchdProvider(testLogger, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range launchdRemoveTests {
 		t.Run(tt.title, func(t *testing.T) {

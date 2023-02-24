@@ -126,6 +126,7 @@ var systemdCreateServiceUnitTests = []struct {
 
 func TestSystemd_Create(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -140,7 +141,7 @@ func TestSystemd_Create(t *testing.T) {
 
 	ctx := context.Background()
 
-	systemd := daemon.NewSystemdProvider(nil, testUserProvider, testCommandExecutor, testFileSystem)
+	systemd := daemon.NewSystemdProvider(testLogger, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range systemdCreateBehaviorTests {
 		forceArg := tt.force.ToBoolList()
@@ -236,6 +237,7 @@ func TestSystemd_Create(t *testing.T) {
 
 func TestSystemd_Start(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -248,7 +250,7 @@ func TestSystemd_Start(t *testing.T) {
 
 	ctx := context.Background()
 
-	systemd := daemon.NewSystemdProvider(nil, testUserProvider, testCommandExecutor, nil)
+	systemd := daemon.NewSystemdProvider(testLogger, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
@@ -280,6 +282,7 @@ func TestSystemd_Start(t *testing.T) {
 
 func TestSystemd_Stop(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -292,7 +295,7 @@ func TestSystemd_Stop(t *testing.T) {
 
 	ctx := context.Background()
 
-	systemd := daemon.NewSystemdProvider(nil, testUserProvider, testCommandExecutor, nil)
+	systemd := daemon.NewSystemdProvider(testLogger, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
@@ -375,6 +378,7 @@ var systemdRemoveTests = []struct {
 
 func TestSystemd_Remove(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -388,7 +392,7 @@ func TestSystemd_Remove(t *testing.T) {
 
 	ctx := context.Background()
 
-	systemd := daemon.NewSystemdProvider(nil, testUserProvider, testCommandExecutor, testFileSystem)
+	systemd := daemon.NewSystemdProvider(testLogger, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range systemdRemoveTests {
 		t.Run(tt.title, func(t *testing.T) {
