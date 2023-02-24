@@ -32,6 +32,21 @@ func BuildGitBundleServerContainer(logger log.TraceLogger) *DependencyContainer 
 	registerDependency(container, func(ctx context.Context) bundles.BundleProvider {
 		return bundles.NewBundleProvider(logger)
 	})
+	registerDependency(container, func(ctx context.Context) core.CronScheduler {
+		return core.NewCronScheduler(
+			logger,
+			GetDependency[common.UserProvider](ctx, container),
+			GetDependency[cmd.CommandExecutor](ctx, container),
+			GetDependency[common.FileSystem](ctx, container),
+		)
+	})
+	registerDependency(container, func(ctx context.Context) CronHelper {
+		return NewCronHelper(
+			logger,
+			GetDependency[common.FileSystem](ctx, container),
+			GetDependency[core.CronScheduler](ctx, container),
+		)
+	})
 	registerDependency(container, func(ctx context.Context) daemon.DaemonProvider {
 		t, err := daemon.NewDaemonProvider(
 			logger,

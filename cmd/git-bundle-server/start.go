@@ -51,7 +51,8 @@ func (s *startCmd) Run(ctx context.Context, args []string) error {
 	}
 
 	// Make sure we have the global schedule running.
-	SetCronSchedule()
+	cron := utils.GetDependency[utils.CronHelper](ctx, s.container)
+	cron.SetCronSchedule(ctx)
 
 	return nil
 }

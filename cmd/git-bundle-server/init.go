@@ -83,7 +83,8 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 		return i.logger.Errorf(ctx, "failed to write bundle list: %w", listErr)
 	}
 
-	SetCronSchedule()
+	cron := utils.GetDependency[utils.CronHelper](ctx, i.container)
+	cron.SetCronSchedule(ctx)
 
 	return nil
 }
