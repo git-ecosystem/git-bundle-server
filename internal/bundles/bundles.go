@@ -65,12 +65,17 @@ type BundleProvider interface {
 }
 
 type bundleProvider struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	gitHelper git.GitHelper
 }
 
-func NewBundleProvider(logger log.TraceLogger) BundleProvider {
+func NewBundleProvider(
+	l log.TraceLogger,
+	g git.GitHelper,
+) BundleProvider {
 	return &bundleProvider{
-		logger: logger,
+		logger:    l,
+		gitHelper: g,
 	}
 }
 
@@ -301,7 +306,7 @@ func (b *bundleProvider) CreateIncrementalBundle(ctx context.Context, repo *core
 		return nil, err
 	}
 
-	written, err := git.CreateIncrementalBundle(repo.RepoDir, bundle.Filename, lines)
+	written, err := b.gitHelper.CreateIncrementalBundle(ctx, repo.RepoDir, bundle.Filename, lines)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create incremental bundle: %w", err)
 	}
@@ -366,7 +371,7 @@ func (b *bundleProvider) CollapseList(ctx context.Context, repo *core.Repository
 		URI:           fmt.Sprintf("./base-%d.bundle", maxTimestamp),
 	}
 
-	err := git.CreateBundleFromRefs(repo.RepoDir, bundle.Filename, refs)
+	err := b.gitHelper.CreateBundleFromRefs(ctx, repo.RepoDir, bundle.Filename, refs)
 	if err != nil {
 		return err
 	}

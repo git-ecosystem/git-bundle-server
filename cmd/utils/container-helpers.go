@@ -8,6 +8,7 @@ import (
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/daemon"
+	"github.com/github/git-bundle-server/internal/git"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
@@ -30,7 +31,10 @@ func BuildGitBundleServerContainer(logger log.TraceLogger) *DependencyContainer 
 		)
 	})
 	registerDependency(container, func(ctx context.Context) bundles.BundleProvider {
-		return bundles.NewBundleProvider(logger)
+		return bundles.NewBundleProvider(
+			logger,
+			GetDependency[git.GitHelper](ctx, container),
+		)
 	})
 	registerDependency(container, func(ctx context.Context) core.CronScheduler {
 		return core.NewCronScheduler(
@@ -45,6 +49,12 @@ func BuildGitBundleServerContainer(logger log.TraceLogger) *DependencyContainer 
 			logger,
 			GetDependency[common.FileSystem](ctx, container),
 			GetDependency[core.CronScheduler](ctx, container),
+		)
+	})
+	registerDependency(container, func(ctx context.Context) git.GitHelper {
+		return git.NewGitHelper(
+			logger,
+			GetDependency[cmd.CommandExecutor](ctx, container),
 		)
 	})
 	registerDependency(container, func(ctx context.Context) daemon.DaemonProvider {

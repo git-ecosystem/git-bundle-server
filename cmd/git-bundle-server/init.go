@@ -43,6 +43,7 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, i.container)
 	bundleProvider := utils.GetDependency[bundles.BundleProvider](ctx, i.container)
+	gitHelper := utils.GetDependency[git.GitHelper](ctx, i.container)
 
 	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
@@ -50,26 +51,12 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 	}
 
 	fmt.Printf("Cloning repository from %s\n", *url)
-	gitErr := git.GitCommand("clone", "--bare", *url, repo.RepoDir)
-
-	if gitErr != nil {
-		return i.logger.Errorf(ctx, "failed to clone repository: %w", gitErr)
-	}
-
-	gitErr = git.GitCommand("-C", repo.RepoDir, "config", "remote.origin.fetch", "+refs/heads/*:refs/heads/*")
-	if gitErr != nil {
-		return i.logger.Errorf(ctx, "failed to configure refspec: %w", gitErr)
-	}
-
-	gitErr = git.GitCommand("-C", repo.RepoDir, "fetch", "origin")
-	if gitErr != nil {
-		return i.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
-	}
+	gitHelper.CloneBareRepo(ctx, *url, repo.RepoDir)
 
 	bundle := bundleProvider.CreateInitialBundle(ctx, repo)
 	fmt.Printf("Constructing base bundle file at %s\n", bundle.Filename)
 
-	written, gitErr := git.CreateBundle(repo.RepoDir, bundle.Filename)
+	written, gitErr := gitHelper.CreateBundle(ctx, repo.RepoDir, bundle.Filename)
 	if gitErr != nil {
 		return i.logger.Errorf(ctx, "failed to create bundle: %w", gitErr)
 	}
