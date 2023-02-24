@@ -45,7 +45,7 @@ func NewSystemdProvider(
 }
 
 func (s *systemd) reloadDaemon(ctx context.Context) error {
-	exitCode, err := s.cmdExec.Run("systemctl", "--user", "daemon-reload")
+	exitCode, err := s.cmdExec.Run(ctx, "systemctl", "--user", "daemon-reload")
 	if err != nil {
 		return s.logger.Error(ctx, err)
 	}
@@ -105,7 +105,7 @@ func (s *systemd) Create(ctx context.Context, config *DaemonConfig, force bool) 
 
 func (s *systemd) Start(ctx context.Context, label string) error {
 	// TODO: warn user if already running
-	exitCode, err := s.cmdExec.Run("systemctl", "--user", "start", label)
+	exitCode, err := s.cmdExec.Run(ctx, "systemctl", "--user", "start", label)
 	if err != nil {
 		return s.logger.Error(ctx, err)
 	}
@@ -119,7 +119,7 @@ func (s *systemd) Start(ctx context.Context, label string) error {
 
 func (s *systemd) Stop(ctx context.Context, label string) error {
 	// TODO: warn user if already stopped
-	exitCode, err := s.cmdExec.Run("systemctl", "--user", "stop", label)
+	exitCode, err := s.cmdExec.Run(ctx, "systemctl", "--user", "stop", label)
 	if err != nil {
 		return s.logger.Error(ctx, err)
 	}

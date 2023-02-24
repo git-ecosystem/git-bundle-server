@@ -251,18 +251,21 @@ func TestLaunchd_Create(t *testing.T) {
 				// Mock responses
 				for _, retVal := range tt.launchctlPrint {
 					testCommandExecutor.On("Run",
+						ctx,
 						"launchctl",
 						mock.MatchedBy(func(args []string) bool { return args[0] == "print" }),
 					).Return(retVal.First, retVal.Second).Once()
 				}
 				for _, retVal := range tt.launchctlBootstrap {
 					testCommandExecutor.On("Run",
+						ctx,
 						"launchctl",
 						mock.MatchedBy(func(args []string) bool { return args[0] == "bootstrap" }),
 					).Return(retVal.First, retVal.Second).Once()
 				}
 				for _, retVal := range tt.launchctlBootout {
 					testCommandExecutor.On("Run",
+						ctx,
 						"launchctl",
 						mock.MatchedBy(func(args []string) bool { return args[0] == "bootout" }),
 					).Return(retVal.First, retVal.Second).Once()
@@ -305,10 +308,12 @@ func TestLaunchd_Create(t *testing.T) {
 
 			// Mock responses for successful fresh write
 			testCommandExecutor.On("Run",
+				ctx,
 				"launchctl",
 				mock.MatchedBy(func(args []string) bool { return args[0] == "print" }),
 			).Return(daemon.LaunchdServiceNotFoundErrorCode, nil).Once()
 			testCommandExecutor.On("Run",
+				ctx,
 				"launchctl",
 				mock.MatchedBy(func(args []string) bool { return args[0] == "bootstrap" }),
 			).Return(0, nil).Once()
@@ -374,6 +379,7 @@ func TestLaunchd_Start(t *testing.T) {
 	// Test #1: launchctl succeeds
 	t.Run("Calls correct launchctl command", func(t *testing.T) {
 		testCommandExecutor.On("Run",
+			ctx,
 			"launchctl",
 			[]string{"kickstart", fmt.Sprintf("user/123/%s", basicDaemonConfig.Label)},
 		).Return(0, nil).Once()
@@ -389,6 +395,7 @@ func TestLaunchd_Start(t *testing.T) {
 	// Test #2: launchctl fails
 	t.Run("Returns error when launchctl fails", func(t *testing.T) {
 		testCommandExecutor.On("Run",
+			ctx,
 			mock.AnythingOfType("string"),
 			mock.AnythingOfType("[]string"),
 		).Return(1, nil).Once()
@@ -458,6 +465,7 @@ func TestLaunchd_Stop(t *testing.T) {
 			// Mock responses
 			if tt.launchctlKill != nil {
 				testCommandExecutor.On("Run",
+					ctx,
 					"launchctl",
 					[]string{"kill", "SIGINT", fmt.Sprintf("user/123/%s", tt.label)},
 				).Return(tt.launchctlKill.First, tt.launchctlKill.Second).Once()
@@ -554,6 +562,7 @@ func TestLaunchd_Remove(t *testing.T) {
 			// Mock responses
 			if tt.launchctlBootout != nil {
 				testCommandExecutor.On("Run",
+					ctx,
 					"launchctl",
 					[]string{"bootout", fmt.Sprintf("user/123/%s", tt.label)},
 				).Return(tt.launchctlBootout.First, tt.launchctlBootout.Second).Once()

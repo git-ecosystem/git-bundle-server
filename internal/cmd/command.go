@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 )
 
 type CommandExecutor interface {
-	Run(command string, args ...string) (int, error)
+	Run(ctx context.Context, command string, args ...string) (int, error)
 }
 
 type commandExecutor struct{}
@@ -15,7 +16,7 @@ func NewCommandExecutor() CommandExecutor {
 	return &commandExecutor{}
 }
 
-func (c *commandExecutor) Run(command string, args ...string) (int, error) {
+func (c *commandExecutor) Run(ctx context.Context, command string, args ...string) (int, error) {
 	exe, err := exec.LookPath(command)
 	if err != nil {
 		return -1, fmt.Errorf("failed to find '%s' on the path: %w", command, err)

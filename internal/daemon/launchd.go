@@ -115,7 +115,7 @@ func NewLaunchdProvider(
 
 func (l *launchd) isBootstrapped(ctx context.Context, serviceTarget string) (bool, error) {
 	// run 'launchctl print' on given service target to see if it exists
-	exitCode, err := l.cmdExec.Run("launchctl", "print", serviceTarget)
+	exitCode, err := l.cmdExec.Run(ctx, "launchctl", "print", serviceTarget)
 	if err != nil {
 		return false, l.logger.Error(ctx, err)
 	}
@@ -132,7 +132,7 @@ func (l *launchd) isBootstrapped(ctx context.Context, serviceTarget string) (boo
 
 func (l *launchd) bootstrapFile(ctx context.Context, domain string, filename string) error {
 	// run 'launchctl bootstrap' on given domain & file
-	exitCode, err := l.cmdExec.Run("launchctl", "bootstrap", domain, filename)
+	exitCode, err := l.cmdExec.Run(ctx, "launchctl", "bootstrap", domain, filename)
 	if err != nil {
 		return l.logger.Error(ctx, err)
 	}
@@ -146,7 +146,7 @@ func (l *launchd) bootstrapFile(ctx context.Context, domain string, filename str
 
 func (l *launchd) bootout(ctx context.Context, serviceTarget string) (bool, error) {
 	// run 'launchctl bootout' on given service target
-	exitCode, err := l.cmdExec.Run("launchctl", "bootout", serviceTarget)
+	exitCode, err := l.cmdExec.Run(ctx, "launchctl", "bootout", serviceTarget)
 	if err != nil {
 		return false, l.logger.Error(ctx, err)
 	}
@@ -239,7 +239,7 @@ func (l *launchd) Start(ctx context.Context, label string) error {
 
 	domainTarget := fmt.Sprintf(domainFormat, user.Uid)
 	serviceTarget := fmt.Sprintf("%s/%s", domainTarget, label)
-	exitCode, err := l.cmdExec.Run("launchctl", "kickstart", serviceTarget)
+	exitCode, err := l.cmdExec.Run(ctx, "launchctl", "kickstart", serviceTarget)
 	if err != nil {
 		return l.logger.Error(ctx, err)
 	}
@@ -259,7 +259,7 @@ func (l *launchd) Stop(ctx context.Context, label string) error {
 
 	domainTarget := fmt.Sprintf(domainFormat, user.Uid)
 	serviceTarget := fmt.Sprintf("%s/%s", domainTarget, label)
-	exitCode, err := l.cmdExec.Run("launchctl", "kill", "SIGINT", serviceTarget)
+	exitCode, err := l.cmdExec.Run(ctx, "launchctl", "kill", "SIGINT", serviceTarget)
 	if err != nil {
 		return l.logger.Error(ctx, err)
 	}

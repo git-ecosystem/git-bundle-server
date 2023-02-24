@@ -121,8 +121,8 @@ type MockCommandExecutor struct {
 	mock.Mock
 }
 
-func (m *MockCommandExecutor) Run(command string, args ...string) (int, error) {
-	fnArgs := m.Called(command, args)
+func (m *MockCommandExecutor) Run(ctx context.Context, command string, args ...string) (int, error) {
+	fnArgs := m.Called(ctx, command, args)
 	return fnArgs.Int(0), fnArgs.Error(1)
 }
 
