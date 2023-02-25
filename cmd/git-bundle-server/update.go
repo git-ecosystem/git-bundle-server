@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/core"
@@ -11,12 +12,14 @@ import (
 )
 
 type updateCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewUpdateCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewUpdateCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &updateCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 

@@ -17,19 +17,14 @@ import (
 )
 
 type webServerCmd struct {
-	logger     log.TraceLogger
-	user       common.UserProvider
-	cmdExec    common.CommandExecutor
-	fileSystem common.FileSystem
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewWebServerCommand(logger log.TraceLogger) argparse.Subcommand {
-	// Create subcommand-specific dependencies
+func NewWebServerCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &webServerCmd{
-		logger:     logger,
-		user:       common.NewUserProvider(),
-		cmdExec:    common.NewCommandExecutor(),
-		fileSystem: common.NewFileSystem(),
+		logger:    logger,
+		container: container,
 	}
 }
 
@@ -64,7 +59,8 @@ func (w *webServerCmd) getDaemonConfig(ctx context.Context) (*daemon.DaemonConfi
 			}
 
 			programPath = filepath.Join(exeDir, "git-bundle-web-server")
-			programExists, err := w.fileSystem.FileExists(programPath)
+			fileSystem := utils.GetDependency[common.FileSystem](ctx, w.container)
+			programExists, err := fileSystem.FileExists(programPath)
 			if err != nil {
 				return nil, w.logger.Errorf(ctx, "could not determine whether path to 'git-bundle-web-server' exists: %w", err)
 			} else if !programExists {
@@ -97,10 +93,7 @@ func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 	parser.Parse(ctx, args)
 	validate(ctx)
 
-	d, err := daemon.NewDaemonProvider(w.logger, w.user, w.cmdExec, w.fileSystem)
-	if err != nil {
-		return w.logger.Error(ctx, err)
-	}
+	d := utils.GetDependency[daemon.DaemonProvider](ctx, w.container)
 
 	config, err := w.getDaemonConfig(ctx)
 	if err != nil {
@@ -153,10 +146,7 @@ func (w *webServerCmd) stopServer(ctx context.Context, args []string) error {
 	remove := parser.Bool("remove", false, "Remove the web server daemon configuration from the system after stopping")
 	parser.Parse(ctx, args)
 
-	d, err := daemon.NewDaemonProvider(w.logger, w.user, w.cmdExec, w.fileSystem)
-	if err != nil {
-		return w.logger.Error(ctx, err)
-	}
+	d := utils.GetDependency[daemon.DaemonProvider](ctx, w.container)
 
 	config, err := w.getDaemonConfig(ctx)
 	if err != nil {

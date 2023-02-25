@@ -4,18 +4,21 @@ import (
 	"context"
 	"os"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
 type deleteCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewDeleteCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewDeleteCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &deleteCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 

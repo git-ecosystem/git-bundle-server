@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/core"
@@ -12,12 +13,14 @@ import (
 )
 
 type initCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewInitCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewInitCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &initCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 

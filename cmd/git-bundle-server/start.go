@@ -4,18 +4,21 @@ import (
 	"context"
 	"os"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
 type startCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewStartCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewStartCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &startCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
@@ -12,12 +13,14 @@ import (
 )
 
 type updateAllCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewUpdateAllCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewUpdateAllCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &updateAllCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 
@@ -31,11 +34,11 @@ For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
 func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
-	user, err := common.NewUserProvider().CurrentUser()
+	user, err := utils.GetDependency[common.UserProvider](ctx, u.container).CurrentUser()
 	if err != nil {
 		return u.logger.Error(ctx, err)
 	}
-	fs := common.NewFileSystem()
+	fs := utils.GetDependency[common.FileSystem](ctx, u.container)
 
 	parser := argparse.NewArgParser(u.logger, "git-bundle-server update-all")
 	parser.Parse(ctx, args)
