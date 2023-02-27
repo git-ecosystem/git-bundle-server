@@ -1,6 +1,7 @@
 package daemon_test
 
 import (
+	"context"
 	"fmt"
 	"os/user"
 	"path/filepath"
@@ -125,6 +126,7 @@ var systemdCreateServiceUnitTests = []struct {
 
 func TestSystemd_Create(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -137,7 +139,9 @@ func TestSystemd_Create(t *testing.T) {
 
 	testFileSystem := &MockFileSystem{}
 
-	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+	ctx := context.Background()
+
+	systemd := daemon.NewSystemdProvider(testLogger, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range systemdCreateBehaviorTests {
 		forceArg := tt.force.ToBoolList()
@@ -163,7 +167,7 @@ func TestSystemd_Create(t *testing.T) {
 				}
 
 				// Run "Create"
-				err := systemd.Create(tt.config, force)
+				err := systemd.Create(ctx, tt.config, force)
 
 				// Assert on expected values
 				if tt.expectErr {
@@ -208,7 +212,7 @@ func TestSystemd_Create(t *testing.T) {
 				}),
 			).Return(nil).Once()
 
-			err := systemd.Create(tt.config, false)
+			err := systemd.Create(ctx, tt.config, false)
 			assert.Nil(t, err)
 			mock.AssertExpectationsForObjects(t, testCommandExecutor, testFileSystem)
 
@@ -233,6 +237,7 @@ func TestSystemd_Create(t *testing.T) {
 
 func TestSystemd_Start(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -243,7 +248,9 @@ func TestSystemd_Start(t *testing.T) {
 
 	testCommandExecutor := &MockCommandExecutor{}
 
-	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, nil)
+	ctx := context.Background()
+
+	systemd := daemon.NewSystemdProvider(testLogger, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
@@ -252,7 +259,7 @@ func TestSystemd_Start(t *testing.T) {
 			[]string{"--user", "start", basicDaemonConfig.Label},
 		).Return(0, nil).Once()
 
-		err := systemd.Start(basicDaemonConfig.Label)
+		err := systemd.Start(ctx, basicDaemonConfig.Label)
 		assert.Nil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -267,7 +274,7 @@ func TestSystemd_Start(t *testing.T) {
 			mock.AnythingOfType("[]string"),
 		).Return(1, nil).Once()
 
-		err := systemd.Start(basicDaemonConfig.Label)
+		err := systemd.Start(ctx, basicDaemonConfig.Label)
 		assert.NotNil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -275,6 +282,7 @@ func TestSystemd_Start(t *testing.T) {
 
 func TestSystemd_Stop(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -285,7 +293,9 @@ func TestSystemd_Stop(t *testing.T) {
 
 	testCommandExecutor := &MockCommandExecutor{}
 
-	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, nil)
+	ctx := context.Background()
+
+	systemd := daemon.NewSystemdProvider(testLogger, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: systemctl succeeds
 	t.Run("Calls correct systemctl command", func(t *testing.T) {
@@ -294,7 +304,7 @@ func TestSystemd_Stop(t *testing.T) {
 			[]string{"--user", "stop", basicDaemonConfig.Label},
 		).Return(0, nil).Once()
 
-		err := systemd.Stop(basicDaemonConfig.Label)
+		err := systemd.Stop(ctx, basicDaemonConfig.Label)
 		assert.Nil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -309,7 +319,7 @@ func TestSystemd_Stop(t *testing.T) {
 			mock.AnythingOfType("[]string"),
 		).Return(1, nil).Once()
 
-		err := systemd.Stop(basicDaemonConfig.Label)
+		err := systemd.Stop(ctx, basicDaemonConfig.Label)
 		assert.NotNil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -324,7 +334,7 @@ func TestSystemd_Stop(t *testing.T) {
 			mock.AnythingOfType("[]string"),
 		).Return(daemon.SystemdUnitNotInstalledErrorCode, nil).Once()
 
-		err := systemd.Stop(basicDaemonConfig.Label)
+		err := systemd.Stop(ctx, basicDaemonConfig.Label)
 		assert.Nil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -368,6 +378,7 @@ var systemdRemoveTests = []struct {
 
 func TestSystemd_Remove(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -379,7 +390,9 @@ func TestSystemd_Remove(t *testing.T) {
 	testCommandExecutor := &MockCommandExecutor{}
 	testFileSystem := &MockFileSystem{}
 
-	systemd := daemon.NewSystemdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+	ctx := context.Background()
+
+	systemd := daemon.NewSystemdProvider(testLogger, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range systemdRemoveTests {
 		t.Run(tt.title, func(t *testing.T) {
@@ -400,7 +413,7 @@ func TestSystemd_Remove(t *testing.T) {
 			}
 
 			// Call function
-			err := systemd.Remove(tt.label)
+			err := systemd.Remove(ctx, tt.label)
 			mock.AssertExpectationsForObjects(t, testCommandExecutor)
 			if tt.expectErr {
 				assert.NotNil(t, err)

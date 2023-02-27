@@ -1,6 +1,7 @@
 package daemon_test
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"os/user"
@@ -225,6 +226,7 @@ var launchdCreatePlistTests = []struct {
 
 func TestLaunchd_Create(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -237,7 +239,9 @@ func TestLaunchd_Create(t *testing.T) {
 
 	testFileSystem := &MockFileSystem{}
 
-	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+	ctx := context.Background()
+
+	launchd := daemon.NewLaunchdProvider(testLogger, testUserProvider, testCommandExecutor, testFileSystem)
 
 	// Verify launchd commands called
 	for _, tt := range launchdCreateBehaviorTests {
@@ -276,7 +280,7 @@ func TestLaunchd_Create(t *testing.T) {
 				}
 
 				// Run "Create"
-				err := launchd.Create(tt.config, force)
+				err := launchd.Create(ctx, tt.config, force)
 
 				// Assert on expected values
 				if tt.expectErr {
@@ -325,7 +329,7 @@ func TestLaunchd_Create(t *testing.T) {
 				}),
 			).Return(nil).Once()
 
-			err := launchd.Create(tt.config, false)
+			err := launchd.Create(ctx, tt.config, false)
 			assert.Nil(t, err)
 			mock.AssertExpectationsForObjects(t, testCommandExecutor, testFileSystem)
 
@@ -353,6 +357,7 @@ func TestLaunchd_Create(t *testing.T) {
 
 func TestLaunchd_Start(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -362,7 +367,9 @@ func TestLaunchd_Start(t *testing.T) {
 
 	testCommandExecutor := &MockCommandExecutor{}
 
-	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
+	ctx := context.Background()
+
+	launchd := daemon.NewLaunchdProvider(testLogger, testUserProvider, testCommandExecutor, nil)
 
 	// Test #1: launchctl succeeds
 	t.Run("Calls correct launchctl command", func(t *testing.T) {
@@ -371,7 +378,7 @@ func TestLaunchd_Start(t *testing.T) {
 			[]string{"kickstart", fmt.Sprintf("user/123/%s", basicDaemonConfig.Label)},
 		).Return(0, nil).Once()
 
-		err := launchd.Start(basicDaemonConfig.Label)
+		err := launchd.Start(ctx, basicDaemonConfig.Label)
 		assert.Nil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -386,7 +393,7 @@ func TestLaunchd_Start(t *testing.T) {
 			mock.AnythingOfType("[]string"),
 		).Return(1, nil).Once()
 
-		err := launchd.Start(basicDaemonConfig.Label)
+		err := launchd.Start(ctx, basicDaemonConfig.Label)
 		assert.NotNil(t, err)
 		mock.AssertExpectationsForObjects(t, testCommandExecutor)
 	})
@@ -432,6 +439,7 @@ var launchdStopTests = []struct {
 
 func TestLaunchd_Stop(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -441,7 +449,9 @@ func TestLaunchd_Stop(t *testing.T) {
 
 	testCommandExecutor := &MockCommandExecutor{}
 
-	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, nil)
+	ctx := context.Background()
+
+	launchd := daemon.NewLaunchdProvider(testLogger, testUserProvider, testCommandExecutor, nil)
 
 	for _, tt := range launchdStopTests {
 		t.Run(tt.title, func(t *testing.T) {
@@ -454,7 +464,7 @@ func TestLaunchd_Stop(t *testing.T) {
 			}
 
 			// Call function
-			err := launchd.Stop(tt.label)
+			err := launchd.Stop(ctx, tt.label)
 			mock.AssertExpectationsForObjects(t, testCommandExecutor)
 			if tt.expectErr {
 				assert.NotNil(t, err)
@@ -520,6 +530,7 @@ var launchdRemoveTests = []struct {
 
 func TestLaunchd_Remove(t *testing.T) {
 	// Set up mocks
+	testLogger := &MockTraceLogger{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
@@ -531,7 +542,9 @@ func TestLaunchd_Remove(t *testing.T) {
 	testCommandExecutor := &MockCommandExecutor{}
 	testFileSystem := &MockFileSystem{}
 
-	launchd := daemon.NewLaunchdProvider(testUserProvider, testCommandExecutor, testFileSystem)
+	ctx := context.Background()
+
+	launchd := daemon.NewLaunchdProvider(testLogger, testUserProvider, testCommandExecutor, testFileSystem)
 
 	for _, tt := range launchdRemoveTests {
 		t.Run(tt.title, func(t *testing.T) {
@@ -552,7 +565,7 @@ func TestLaunchd_Remove(t *testing.T) {
 			}
 
 			// Call function
-			err := launchd.Remove(tt.label)
+			err := launchd.Remove(ctx, tt.label)
 			mock.AssertExpectationsForObjects(t, testCommandExecutor)
 			if tt.expectErr {
 				assert.NotNil(t, err)

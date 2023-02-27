@@ -1,21 +1,23 @@
 package argparse
 
+import "context"
+
 type Subcommand interface {
 	Name() string
 	Description() string
-	Run(args []string) error
+	Run(ctx context.Context, args []string) error
 }
 
 type genericSubcommand struct {
 	nameStr        string
 	descriptionStr string
-	runFunc        func([]string) error
+	runFunc        func(context.Context, []string) error
 }
 
 func NewSubcommand(
 	name string,
 	description string,
-	runFunc func([]string) error,
+	runFunc func(context.Context, []string) error,
 ) *genericSubcommand {
 	return &genericSubcommand{
 		nameStr:        name,
@@ -32,6 +34,6 @@ func (s *genericSubcommand) Description() string {
 	return s.descriptionStr
 }
 
-func (s *genericSubcommand) Run(args []string) error {
-	return s.runFunc(args)
+func (s *genericSubcommand) Run(ctx context.Context, args []string) error {
+	return s.runFunc(ctx, args)
 }

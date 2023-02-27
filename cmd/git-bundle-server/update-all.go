@@ -1,44 +1,53 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"os"
 	"os/exec"
 
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
-type UpdateAll struct{}
+type updateAllCmd struct {
+	logger log.TraceLogger
+}
 
-func (UpdateAll) Name() string {
+func NewUpdateAllCommand(logger log.TraceLogger) argparse.Subcommand {
+	return &updateAllCmd{
+		logger: logger,
+	}
+}
+
+func (updateAllCmd) Name() string {
 	return "update-all"
 }
 
-func (UpdateAll) Description() string {
+func (updateAllCmd) Description() string {
 	return `
 For every configured route, run 'git-bundle-server update <options> <route>'.`
 }
 
-func (UpdateAll) Run(args []string) error {
+func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
 	user, err := common.NewUserProvider().CurrentUser()
 	if err != nil {
-		return err
+		return u.logger.Error(ctx, err)
 	}
 	fs := common.NewFileSystem()
 
-	parser := argparse.NewArgParser("git-bundle-server update-all")
-	parser.Parse(args)
+	parser := argparse.NewArgParser(u.logger, "git-bundle-server update-all")
+	parser.Parse(ctx, args)
 
 	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to get path to execuable: %w", err)
+		return u.logger.Errorf(ctx, "failed to get path to execuable: %w", err)
 	}
 
 	repos, err := core.GetRepositories(user, fs)
 	if err != nil {
-		return err
+		return u.logger.Error(ctx, err)
 	}
 
 	subargs := []string{"update", ""}
@@ -52,12 +61,12 @@ func (UpdateAll) Run(args []string) error {
 
 		err := cmd.Start()
 		if err != nil {
-			return fmt.Errorf("git command failed to start: %w", err)
+			return u.logger.Errorf(ctx, "git command failed to start: %w", err)
 		}
 
 		err = cmd.Wait()
 		if err != nil {
-			return fmt.Errorf("git command returned a failure: %w", err)
+			return u.logger.Errorf(ctx, "git command returned a failure: %w", err)
 		}
 	}
 

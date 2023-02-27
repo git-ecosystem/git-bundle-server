@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,32 +13,35 @@ import (
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/daemon"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
-type webServer struct {
+type webServerCmd struct {
+	logger     log.TraceLogger
 	user       common.UserProvider
 	cmdExec    common.CommandExecutor
 	fileSystem common.FileSystem
 }
 
-func NewWebServerCommand() *webServer {
-	// Create dependencies
-	return &webServer{
+func NewWebServerCommand(logger log.TraceLogger) argparse.Subcommand {
+	// Create subcommand-specific dependencies
+	return &webServerCmd{
+		logger:     logger,
 		user:       common.NewUserProvider(),
 		cmdExec:    common.NewCommandExecutor(),
 		fileSystem: common.NewFileSystem(),
 	}
 }
 
-func (webServer) Name() string {
+func (webServerCmd) Name() string {
 	return "web-server"
 }
 
-func (webServer) Description() string {
+func (webServerCmd) Description() string {
 	return `Manage the web server hosting bundle content`
 }
 
-func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
+func (w *webServerCmd) getDaemonConfig(ctx context.Context) (*daemon.DaemonConfig, error) {
 	// Find git-bundle-web-server
 	// First, search for it on the path
 	programPath, err := exec.LookPath("git-bundle-web-server")
@@ -46,25 +50,25 @@ func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
 			// Result is a relative path
 			programPath, err = filepath.Abs(programPath)
 			if err != nil {
-				return nil, fmt.Errorf("could not get absolute path to program: %w", err)
+				return nil, w.logger.Errorf(ctx, "could not get absolute path to program: %w", err)
 			}
 		} else {
 			// Fall back on looking for it in the same directory as the currently-running executable
 			exePath, err := os.Executable()
 			if err != nil {
-				return nil, fmt.Errorf("failed to get path to current executable: %w", err)
+				return nil, w.logger.Errorf(ctx, "failed to get path to current executable: %w", err)
 			}
 			exeDir := filepath.Dir(exePath)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get parent dir of current executable: %w", err)
+				return nil, w.logger.Errorf(ctx, "failed to get parent dir of current executable: %w", err)
 			}
 
 			programPath = filepath.Join(exeDir, "git-bundle-web-server")
 			programExists, err := w.fileSystem.FileExists(programPath)
 			if err != nil {
-				return nil, fmt.Errorf("could not determine whether path to 'git-bundle-web-server' exists: %w", err)
+				return nil, w.logger.Errorf(ctx, "could not determine whether path to 'git-bundle-web-server' exists: %w", err)
 			} else if !programExists {
-				return nil, fmt.Errorf("could not find path to 'git-bundle-web-server'")
+				return nil, w.logger.Errorf(ctx, "could not find path to 'git-bundle-web-server'")
 			}
 		}
 	}
@@ -76,9 +80,9 @@ func (w *webServer) getDaemonConfig() (*daemon.DaemonConfig, error) {
 	}, nil
 }
 
-func (w *webServer) startServer(args []string) error {
+func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 	// Parse subcommand arguments
-	parser := argparse.NewArgParser("git-bundle-server web-server start [-f|--force]")
+	parser := argparse.NewArgParser(w.logger, "git-bundle-server web-server start [-f|--force]")
 
 	// Args for 'git-bundle-server web-server start'
 	force := parser.Bool("force", false, "Force reconfiguration of the web server daemon")
@@ -90,17 +94,17 @@ func (w *webServer) startServer(args []string) error {
 		parser.Var(f.Value, f.Name, fmt.Sprintf("[Web server] %s", f.Usage))
 	})
 
-	parser.Parse(args)
-	validate()
+	parser.Parse(ctx, args)
+	validate(ctx)
 
-	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
+	d, err := daemon.NewDaemonProvider(w.logger, w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
-	config, err := w.getDaemonConfig()
+	config, err := w.getDaemonConfig(ctx)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
 	// Configure flags
@@ -127,59 +131,59 @@ func (w *webServer) startServer(args []string) error {
 	})
 	if loopErr != nil {
 		// Error happened in 'Visit'
-		return loopErr
+		return w.logger.Error(ctx, loopErr)
 	}
 
-	err = d.Create(config, *force)
+	err = d.Create(ctx, config, *force)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
-	err = d.Start(config.Label)
+	err = d.Start(ctx, config.Label)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
 	return nil
 }
 
-func (w *webServer) stopServer(args []string) error {
+func (w *webServerCmd) stopServer(ctx context.Context, args []string) error {
 	// Parse subcommand arguments
-	parser := argparse.NewArgParser("git-bundle-server web-server stop [--remove]")
+	parser := argparse.NewArgParser(w.logger, "git-bundle-server web-server stop [--remove]")
 	remove := parser.Bool("remove", false, "Remove the web server daemon configuration from the system after stopping")
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
-	d, err := daemon.NewDaemonProvider(w.user, w.cmdExec, w.fileSystem)
+	d, err := daemon.NewDaemonProvider(w.logger, w.user, w.cmdExec, w.fileSystem)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
-	config, err := w.getDaemonConfig()
+	config, err := w.getDaemonConfig(ctx)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
-	err = d.Stop(config.Label)
+	err = d.Stop(ctx, config.Label)
 	if err != nil {
-		return err
+		return w.logger.Error(ctx, err)
 	}
 
 	if *remove {
-		err = d.Remove(config.Label)
+		err = d.Remove(ctx, config.Label)
 		if err != nil {
-			return err
+			return w.logger.Error(ctx, err)
 		}
 	}
 
 	return nil
 }
 
-func (w *webServer) Run(args []string) error {
+func (w *webServerCmd) Run(ctx context.Context, args []string) error {
 	// Parse command arguments
-	parser := argparse.NewArgParser("git-bundle-server web-server (start|stop) <options>")
+	parser := argparse.NewArgParser(w.logger, "git-bundle-server web-server (start|stop) <options>")
 	parser.Subcommand(argparse.NewSubcommand("start", "Start the web server", w.startServer))
 	parser.Subcommand(argparse.NewSubcommand("stop", "Stop the web server", w.stopServer))
-	parser.Parse(args)
+	parser.Parse(ctx, args)
 
-	return parser.InvokeSubcommand()
+	return parser.InvokeSubcommand(ctx)
 }
