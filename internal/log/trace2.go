@@ -132,7 +132,7 @@ func (t *Trace2) sharedFields(ctx context.Context) (context.Context, fieldList) 
 	// Get the caller of the function in trace2.go
 	// Skip up two levels:
 	// 0: this function
-	// 1: the caller of this function (StartTrace, LogEvent, etc.)
+	// 1: the caller of this function (logStart, Error, etc.)
 	// 2: the function calling this trace2 library
 	_, fileName, lineNum, ok := runtime.Caller(2)
 	if ok {
