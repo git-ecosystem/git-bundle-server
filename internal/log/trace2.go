@@ -88,6 +88,9 @@ func createTrace2ZapLogger() *zap.Logger {
 		},
 	)
 
+	// Ensure durations are logged in units of seconds
+	loggerConfig.EncoderConfig.EncodeDuration = zapcore.SecondsDurationEncoder
+
 	// Re-purpose the "message" to represent the (always-present) "event" key
 	loggerConfig.EncoderConfig.MessageKey = "event"
 
@@ -108,13 +111,13 @@ func NewTrace2() traceLoggerInternal {
 type fieldList []zap.Field
 
 func (l fieldList) withTime() fieldList {
-	return append(l, zap.Float64("t_abs", time.Since(globalStart).Seconds()))
+	return append(l, zap.Duration("t_abs", time.Since(globalStart)))
 }
 
 func (l fieldList) withNesting(r trace2Region, includeTRel bool) fieldList {
 	l = append(l, zap.Int("nesting", r.level))
 	if includeTRel {
-		l = append(l, zap.Float64("t_rel", time.Since(r.tStart).Seconds()))
+		l = append(l, zap.Duration("t_rel", time.Since(r.tStart)))
 	}
 	return l
 }
