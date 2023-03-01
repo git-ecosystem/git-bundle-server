@@ -18,7 +18,7 @@ type FileSystem interface {
 
 type fileSystem struct{}
 
-func NewFileSystem() *fileSystem {
+func NewFileSystem() FileSystem {
 	return &fileSystem{}
 }
 

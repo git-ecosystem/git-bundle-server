@@ -11,7 +11,7 @@ type CommandExecutor interface {
 
 type commandExecutor struct{}
 
-func NewCommandExecutor() *commandExecutor {
+func NewCommandExecutor() CommandExecutor {
 	return &commandExecutor{}
 }
 

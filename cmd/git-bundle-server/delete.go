@@ -4,18 +4,21 @@ import (
 	"context"
 	"os"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
 type deleteCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewDeleteCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewDeleteCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &deleteCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 
@@ -34,12 +37,14 @@ func (d *deleteCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route to delete")
 	parser.Parse(ctx, args)
 
-	repo, err := core.CreateRepository(*route)
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, d.container)
+
+	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return d.logger.Error(ctx, err)
 	}
 
-	err = core.RemoveRoute(*route)
+	err = repoProvider.RemoveRoute(ctx, *route)
 	if err != nil {
 		return d.logger.Error(ctx, err)
 	}

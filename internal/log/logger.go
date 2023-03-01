@@ -12,6 +12,7 @@ import (
 type loggedError error
 
 type TraceLogger interface {
+	Region(ctx context.Context, category string, label string) (context.Context, func())
 	LogCommand(ctx context.Context, commandName string) context.Context
 	Error(ctx context.Context, err error) error
 	Errorf(ctx context.Context, format string, a ...any) error

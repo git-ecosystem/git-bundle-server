@@ -1,12 +1,12 @@
 package core
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"os"
-	"os/user"
 
 	"github.com/github/git-bundle-server/internal/common"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
 type Repository struct {
@@ -15,13 +15,39 @@ type Repository struct {
 	WebDir  string
 }
 
-func CreateRepository(route string) (*Repository, error) {
-	user, err := common.NewUserProvider().CurrentUser()
+type RepositoryProvider interface {
+	CreateRepository(ctx context.Context, route string) (*Repository, error)
+	GetRepositories(ctx context.Context) (map[string]Repository, error)
+	RemoveRoute(ctx context.Context, route string) error
+}
+
+type repoProvider struct {
+	logger     log.TraceLogger
+	user       common.UserProvider
+	fileSystem common.FileSystem
+}
+
+func NewRepositoryProvider(logger log.TraceLogger,
+	u common.UserProvider,
+	fs common.FileSystem,
+) RepositoryProvider {
+	return &repoProvider{
+		logger:     logger,
+		user:       u,
+		fileSystem: fs,
+	}
+}
+
+func (r *repoProvider) CreateRepository(ctx context.Context, route string) (*Repository, error) {
+	ctx, exitRegion := r.logger.Region(ctx, "repo", "create_repo")
+	defer exitRegion()
+
+	user, err := r.user.CurrentUser()
 	if err != nil {
 		return nil, err
 	}
-	fs := common.NewFileSystem()
-	repos, err := GetRepositories(user, fs)
+
+	repos, err := r.GetRepositories(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse routes file: %w", err)
 	}
@@ -36,7 +62,7 @@ func CreateRepository(route string) (*Repository, error) {
 
 	mkdirErr := os.MkdirAll(web, os.ModePerm)
 	if mkdirErr != nil {
-		log.Fatal("failed to create web directory: ", mkdirErr)
+		return nil, fmt.Errorf("failed to create web directory: %w", mkdirErr)
 	}
 
 	repo = Repository{
@@ -47,7 +73,7 @@ func CreateRepository(route string) (*Repository, error) {
 
 	repos[route] = repo
 
-	err = WriteRouteFile(repos)
+	err = r.writeRouteFile(repos)
 	if err != nil {
 		return nil, fmt.Errorf("warning: failed to write route file")
 	}
@@ -55,13 +81,11 @@ func CreateRepository(route string) (*Repository, error) {
 	return &repo, nil
 }
 
-func RemoveRoute(route string) error {
-	user, err := common.NewUserProvider().CurrentUser()
-	if err != nil {
-		return err
-	}
-	fs := common.NewFileSystem()
-	repos, err := GetRepositories(user, fs)
+func (r *repoProvider) RemoveRoute(ctx context.Context, route string) error {
+	ctx, exitRegion := r.logger.Region(ctx, "repo", "remove_route")
+	defer exitRegion()
+
+	repos, err := r.GetRepositories(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to parse routes file: %w", err)
 	}
@@ -73,11 +97,11 @@ func RemoveRoute(route string) error {
 
 	delete(repos, route)
 
-	return WriteRouteFile(repos)
+	return r.writeRouteFile(repos)
 }
 
-func WriteRouteFile(repos map[string]Repository) error {
-	user, err := common.NewUserProvider().CurrentUser()
+func (r *repoProvider) writeRouteFile(repos map[string]Repository) error {
+	user, err := r.user.CurrentUser()
 	if err != nil {
 		return err
 	}
@@ -93,13 +117,21 @@ func WriteRouteFile(repos map[string]Repository) error {
 	return os.WriteFile(routefile, []byte(contents), 0o600)
 }
 
-func GetRepositories(user *user.User, fs common.FileSystem) (map[string]Repository, error) {
+func (r *repoProvider) GetRepositories(ctx context.Context) (map[string]Repository, error) {
+	ctx, exitRegion := r.logger.Region(ctx, "repo", "get_repos") //lint:ignore SA4006 keep ctx up-to-date
+	defer exitRegion()
+
+	user, err := r.user.CurrentUser()
+	if err != nil {
+		return nil, err
+	}
+
 	repos := make(map[string]Repository)
 
 	dir := bundleroot(user)
 	routefile := dir + "/routes"
 
-	lines, err := fs.ReadFileLines(routefile)
+	lines, err := r.fileSystem.ReadFileLines(routefile)
 	if err != nil {
 		return nil, err
 	}

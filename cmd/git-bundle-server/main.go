@@ -4,19 +4,22 @@ import (
 	"context"
 	"os"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
 func all(logger log.TraceLogger) []argparse.Subcommand {
+	container := utils.BuildGitBundleServerContainer(logger)
+
 	return []argparse.Subcommand{
-		NewDeleteCommand(logger),
-		NewInitCommand(logger),
-		NewStartCommand(logger),
-		NewStopCommand(logger),
-		NewUpdateCommand(logger),
-		NewUpdateAllCommand(logger),
-		NewWebServerCommand(logger),
+		NewDeleteCommand(logger, container),
+		NewInitCommand(logger, container),
+		NewStartCommand(logger, container),
+		NewStopCommand(logger, container),
+		NewUpdateCommand(logger, container),
+		NewUpdateAllCommand(logger, container),
+		NewWebServerCommand(logger, container),
 	}
 }
 

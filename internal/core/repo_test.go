@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"context"
 	"errors"
 	"os/user"
 	"testing"
@@ -83,12 +84,16 @@ var getRepositoriesTests = []struct {
 }
 
 func TestRepos_GetRepositories(t *testing.T) {
+	testLogger := &MockTraceLogger{}
 	testFileSystem := &MockFileSystem{}
 	testUser := &user.User{
 		Uid:      "123",
 		Username: "testuser",
 		HomeDir:  "/my/test/dir",
 	}
+	testUserProvider := &MockUserProvider{}
+	testUserProvider.On("CurrentUser").Return(testUser, nil)
+	repoProvider := core.NewRepositoryProvider(testLogger, testUserProvider, testFileSystem)
 
 	for _, tt := range getRepositoriesTests {
 		t.Run(tt.title, func(t *testing.T) {
@@ -97,7 +102,7 @@ func TestRepos_GetRepositories(t *testing.T) {
 				mock.AnythingOfType("string"),
 			).Return(tt.readFileLines.First, tt.readFileLines.Second).Once()
 
-			actual, err := core.GetRepositories(testUser, testFileSystem)
+			actual, err := repoProvider.GetRepositories(context.Background())
 
 			if tt.expectedErr {
 				assert.NotNil(t, err, "Expected error")

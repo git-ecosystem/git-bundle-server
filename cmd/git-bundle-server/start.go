@@ -4,18 +4,21 @@ import (
 	"context"
 	"os"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
 type startCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewStartCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewStartCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &startCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 
@@ -34,8 +37,10 @@ func (s *startCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route for which bundles should be generated")
 	parser.Parse(ctx, args)
 
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, s.container)
+
 	// CreateRepository registers the route.
-	repo, err := core.CreateRepository(*route)
+	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return s.logger.Error(ctx, err)
 	}

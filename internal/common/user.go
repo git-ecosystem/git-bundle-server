@@ -10,7 +10,7 @@ type UserProvider interface {
 
 type userProvider struct{}
 
-func NewUserProvider() *userProvider {
+func NewUserProvider() UserProvider {
 	return &userProvider{}
 }
 

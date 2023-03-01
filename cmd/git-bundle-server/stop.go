@@ -3,18 +3,21 @@ package main
 import (
 	"context"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
 type stopCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewStopCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewStopCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &stopCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 
@@ -33,7 +36,9 @@ func (s *stopCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route for which bundles should stop being generated")
 	parser.Parse(ctx, args)
 
-	err := core.RemoveRoute(*route)
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, s.container)
+
+	err := repoProvider.RemoveRoute(ctx, *route)
 	if err != nil {
 		s.logger.Error(ctx, err)
 	}

@@ -66,13 +66,10 @@ func (b *bundleWebServer) parseRoute(ctx context.Context, path string) (string, 
 func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, err := common.NewUserProvider().CurrentUser()
-	if err != nil {
-		return
-	}
-	fs := common.NewFileSystem()
-	path := r.URL.Path
+	ctx, exitRegion := b.logger.Region(ctx, "http", "serve")
+	defer exitRegion()
 
+	path := r.URL.Path
 	owner, repo, file, err := b.parseRoute(ctx, path)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -82,7 +79,11 @@ func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 
 	route := owner + "/" + repo
 
-	repos, err := core.GetRepositories(user, fs)
+	userProvider := common.NewUserProvider()
+	fileSystem := common.NewFileSystem()
+	repoProvider := core.NewRepositoryProvider(b.logger, userProvider, fileSystem)
+
+	repos, err := repoProvider.GetRepositories(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Printf("Failed to load routes\n")

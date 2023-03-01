@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
 	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/core"
@@ -12,12 +13,14 @@ import (
 )
 
 type initCmd struct {
-	logger log.TraceLogger
+	logger    log.TraceLogger
+	container *utils.DependencyContainer
 }
 
-func NewInitCommand(logger log.TraceLogger) argparse.Subcommand {
+func NewInitCommand(logger log.TraceLogger, container *utils.DependencyContainer) argparse.Subcommand {
 	return &initCmd{
-		logger: logger,
+		logger:    logger,
+		container: container,
 	}
 }
 
@@ -38,7 +41,10 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 	route := parser.PositionalString("route", "the route to host the specified repo")
 	parser.Parse(ctx, args)
 
-	repo, err := core.CreateRepository(*route)
+	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, i.container)
+	bundleProvider := utils.GetDependency[bundles.BundleProvider](ctx, i.container)
+
+	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return i.logger.Error(ctx, err)
 	}
@@ -60,7 +66,7 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 		return i.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
 	}
 
-	bundle := bundles.CreateInitialBundle(repo)
+	bundle := bundleProvider.CreateInitialBundle(ctx, repo)
 	fmt.Printf("Constructing base bundle file at %s\n", bundle.Filename)
 
 	written, gitErr := git.CreateBundle(repo.RepoDir, bundle.Filename)
@@ -71,8 +77,8 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 		return i.logger.Errorf(ctx, "refused to write empty bundle. Is the repo empty?")
 	}
 
-	list := bundles.CreateSingletonList(bundle)
-	listErr := bundles.WriteBundleList(list, repo)
+	list := bundleProvider.CreateSingletonList(ctx, bundle)
+	listErr := bundleProvider.WriteBundleList(ctx, list, repo)
 	if listErr != nil {
 		return i.logger.Errorf(ctx, "failed to write bundle list: %w", listErr)
 	}
