@@ -31,16 +31,19 @@ jobs:
             goarch: amd64
             pool: macos-latest
             artifact: _dist/*.pkg
+            environment: release
           - jobname: Create MacOS .pkg (ARM64)
             goarch: arm64
             pool: macos-latest
             artifact: _dist/*.pkg
+            environment: release
           - jobname: Create binary Debian package (x86_64)
             goarch: amd64
             pool: ubuntu-latest
             artifact: _dist/*.deb
     env:
       GOARCH: ${{matrix.jobs.goarch}}
+    environment: ${{matrix.jobs.environment}}
     runs-on: ${{matrix.jobs.pool}}
     steps:
       - name: Setup Go
@@ -53,8 +56,82 @@ jobs:
       - run: gem install asciidoctor
       - name: Clone repository
         uses: actions/checkout@v3
+      - name: Configure MacOS signing
+        if: ${{ matrix.jobs.pool == 'macos-latest' }}
+        env:
+          A1: ${{ secrets.APPLICATION_CERTIFICATE_BASE64 }}
+          A2: ${{ secrets.APPLICATION_CERTIFICATE_PASSWORD }}
+          A3: ${{ secrets.APPLE_APPLICATION_SIGNING_IDENTITY }}
+          I1: ${{ secrets.INSTALLER_CERTIFICATE_BASE64 }}
+          I2: ${{ secrets.INSTALLER_CERTIFICATE_PASSWORD }}
+          I3: ${{ secrets.APPLE_INSTALLER_SIGNING_IDENTITY }}
+          N1: ${{ secrets.APPLE_TEAM_ID }}
+          N2: ${{ secrets.APPLE_DEVELOPER_ID }}
+          N3: ${{ secrets.APPLE_DEVELOPER_PASSWORD }}
+          N4: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
+        run: |
+          # Environment configured for signing?
+          if [[ -n "$A1" && -n "$A2" && -n "$A3" && -n "$I1" && -n "$I2" && -n "$I3" ]]
+          then
+            echo "DO_SIGN=1" >> $GITHUB_ENV
+          else
+            echo "::warning::MacOS signing environment is not fully specified. Skipping configuration."
+            exit 0
+          fi
+
+          # Signing
+          echo "Setting up signing certificates"
+          security create-keychain -p pwd $RUNNER_TEMP/buildagent.keychain
+          security default-keychain -s $RUNNER_TEMP/buildagent.keychain
+          security unlock-keychain -p pwd $RUNNER_TEMP/buildagent.keychain
+
+          echo $A1 | base64 -D > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 \
+            -k $RUNNER_TEMP/buildagent.keychain \
+            -P $A2 \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k pwd \
+            $RUNNER_TEMP/buildagent.keychain
+
+          echo $I1 | base64 -D > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 \
+            -k $RUNNER_TEMP/buildagent.keychain \
+            -P $I2 \
+            -T /usr/bin/productbuild
+          security set-key-partition-list \
+            -S apple-tool:,apple:,productbuild: \
+            -s -k pwd \
+            $RUNNER_TEMP/buildagent.keychain
+
+          # Environment configured for notarization?
+          if [[ -n "$N1" && -n "$N2" && -n "$N3" && -n "$N4" ]]
+          then
+            echo "DO_NOTARIZE=1" >> $GITHUB_ENV
+          else
+            echo "::warning::Successfully configured MacOS signing, but cannot set up notarization. Skipping configuration."
+            exit 0
+          fi
+
+          # Notarizing
+          echo "Setting up notarytool"
+          xcrun notarytool store-credentials \
+            --team-id $N1 \
+            --apple-id $N2 \
+            --password $N3 \
+            "$N4"
       - name: Build the release artifact
-        run: make package VERSION=${{ needs.prereqs.outputs.tag_version }}
+        env:
+          A3: ${{ secrets.APPLE_APPLICATION_SIGNING_IDENTITY }}
+          I3: ${{ secrets.APPLE_INSTALLER_SIGNING_IDENTITY }}
+          N4: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
+        shell: bash
+        run: |
+          make package VERSION=${{ needs.prereqs.outputs.tag_version }} \
+                       APPLE_APP_IDENTITY="$([[ -n "$DO_SIGN" ]] && echo "$A3" || echo '')" \
+                       APPLE_INST_IDENTITY="$([[ -n "$DO_SIGN" ]] && echo "$I3" || echo '')" \
+                       APPLE_KEYCHAIN_PROFILE="$([[ -n "$DO_NOTARIZE" ]] && echo "$N4" || echo '')"
       - name: Get the release artifact
         shell: bash
         run: |
