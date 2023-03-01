@@ -26,7 +26,7 @@ const (
 // Global start time
 var globalStart = time.Now().UTC()
 
-const trace2TimeFormat string = "2006-01-02T15:04:05.999999Z"
+const trace2TimeFormat string = "2006-01-02T15:04:05.000000Z"
 
 type ctxKey int
 
@@ -84,7 +84,7 @@ func createTrace2ZapLogger() *zap.Logger {
 	loggerConfig.EncoderConfig.TimeKey = "time"
 	loggerConfig.EncoderConfig.EncodeTime = zapcore.TimeEncoder(
 		func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-			enc.AppendString(t.Format(trace2TimeFormat))
+			enc.AppendString(t.UTC().Format(trace2TimeFormat))
 		},
 	)
 
