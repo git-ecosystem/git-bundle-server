@@ -25,6 +25,7 @@ PACKAGE_ARCH := $(GOARCH)
 # Guard against environment variables
 APPLE_APP_IDENTITY =
 APPLE_INST_IDENTITY =
+APPLE_KEYCHAIN_PROFILE =
 
 # Build targets
 .PHONY: build
@@ -134,6 +135,22 @@ $(PKG_FILENAME): check-version $(PKGDIR)/payload
 				   --payload="$(PKGDIR)/payload" \
 				   --identity="$(APPLE_INST_IDENTITY)" \
 				   --output="$(PKG_FILENAME)"
+
+# Notarization can only happen if the package is fully signed
+ifdef APPLE_APP_IDENTITY
+ifdef APPLE_INST_IDENTITY
+ifdef APPLE_KEYCHAIN_PROFILE
+.PHONY: notarize
+notarize: $(PKG_FILENAME)
+	@echo
+	@echo "======== Notarizing package ========"
+	@build/package/pkg/notarize.sh --package="$(PKG_FILENAME)" \
+				       --keychain-profile="$(APPLE_KEYCHAIN_PROFILE)"
+
+package: notarize
+endif
+endif
+endif
 
 .PHONY: package
 package: $(PKG_FILENAME)
