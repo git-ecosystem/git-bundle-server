@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
-	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/github/git-bundle-server/cmd/utils"
@@ -38,35 +35,10 @@ func (webServerCmd) Description() string {
 
 func (w *webServerCmd) getDaemonConfig(ctx context.Context) (*daemon.DaemonConfig, error) {
 	// Find git-bundle-web-server
-	// First, search for it on the path
-	programPath, err := exec.LookPath("git-bundle-web-server")
+	fileSystem := utils.GetDependency[common.FileSystem](ctx, w.container)
+	programPath, err := fileSystem.GetLocalExecutable("git-bundle-web-server")
 	if err != nil {
-		if errors.Is(err, exec.ErrDot) {
-			// Result is a relative path
-			programPath, err = filepath.Abs(programPath)
-			if err != nil {
-				return nil, w.logger.Errorf(ctx, "could not get absolute path to program: %w", err)
-			}
-		} else {
-			// Fall back on looking for it in the same directory as the currently-running executable
-			exePath, err := os.Executable()
-			if err != nil {
-				return nil, w.logger.Errorf(ctx, "failed to get path to current executable: %w", err)
-			}
-			exeDir := filepath.Dir(exePath)
-			if err != nil {
-				return nil, w.logger.Errorf(ctx, "failed to get parent dir of current executable: %w", err)
-			}
-
-			programPath = filepath.Join(exeDir, "git-bundle-web-server")
-			fileSystem := utils.GetDependency[common.FileSystem](ctx, w.container)
-			programExists, err := fileSystem.FileExists(programPath)
-			if err != nil {
-				return nil, w.logger.Errorf(ctx, "could not determine whether path to 'git-bundle-web-server' exists: %w", err)
-			} else if !programExists {
-				return nil, w.logger.Errorf(ctx, "could not find path to 'git-bundle-web-server'")
-			}
-		}
+		return nil, w.logger.Error(ctx, err)
 	}
 
 	return &daemon.DaemonConfig{

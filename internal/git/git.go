@@ -2,78 +2,73 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
+
+	"github.com/github/git-bundle-server/internal/cmd"
+	"github.com/github/git-bundle-server/internal/log"
 )
 
-func GetExecCommand(args []string) (*exec.Cmd, error) {
-	git, err := exec.LookPath("git")
-	if err != nil {
-		return nil, fmt.Errorf("failed to find 'git' on the path: %w", err)
-	}
-
-	cmd := exec.Command(git, args...)
-	cmd.Env = append(cmd.Env, "LC_CTYPE=C")
-
-	return cmd, nil
+type GitHelper interface {
+	CreateBundle(ctx context.Context, repoDir string, filename string) (bool, error)
+	CreateBundleFromRefs(ctx context.Context, repoDir string, filename string, refs map[string]string) error
+	CreateIncrementalBundle(ctx context.Context, repoDir string, filename string, prereqs []string) (bool, error)
+	CloneBareRepo(ctx context.Context, url string, destination string) error
 }
 
-func GitCommand(args ...string) error {
-	cmd, err := GetExecCommand(args)
-	if err != nil {
-		return err
-	}
-
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-
-	err = cmd.Start()
-	if err != nil {
-		return fmt.Errorf("git command failed to start: %w", err)
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		return fmt.Errorf("git command returned a failure: %w", err)
-	}
-
-	return err
+type gitHelper struct {
+	logger  log.TraceLogger
+	cmdExec cmd.CommandExecutor
 }
 
-func GitCommandWithStdin(stdinLines []string, args ...string) error {
-	cmd, err := GetExecCommand(args)
+func NewGitHelper(l log.TraceLogger, c cmd.CommandExecutor) GitHelper {
+	return &gitHelper{
+		logger:  l,
+		cmdExec: c,
+	}
+}
+
+func (g *gitHelper) gitCommand(ctx context.Context, args ...string) error {
+	exitCode, err := g.cmdExec.Run(ctx, "git", args,
+		cmd.Stdout(os.Stdout),
+		cmd.Stderr(os.Stderr),
+		cmd.Env([]string{"LC_CTYPE=C"}),
+	)
+
 	if err != nil {
-		return err
+		return g.logger.Error(ctx, err)
+	} else if exitCode != 0 {
+		return g.logger.Errorf(ctx, "'git' exited with status %d", exitCode)
 	}
 
+	return nil
+}
+
+func (g *gitHelper) gitCommandWithStdin(ctx context.Context, stdinLines []string, args ...string) error {
 	buffer := bytes.Buffer{}
 	for line := range stdinLines {
 		buffer.Write([]byte(stdinLines[line] + "\n"))
 	}
+	exitCode, err := g.cmdExec.Run(ctx, "git", args,
+		cmd.Stdin(&buffer),
+		cmd.Stdout(os.Stdout),
+		cmd.Stderr(os.Stderr),
+		cmd.Env([]string{"LC_CTYPE=C"}),
+	)
 
-	cmd.Stdin = &buffer
-
-	errorBuffer := bytes.Buffer{}
-	cmd.Stderr = &errorBuffer
-	cmd.Stdout = os.Stdout
-
-	err = cmd.Start()
 	if err != nil {
-		return fmt.Errorf("git command failed to start: %w", err)
+		return g.logger.Error(ctx, err)
+	} else if exitCode != 0 {
+		return g.logger.Errorf(ctx, "'git' exited with status %d", exitCode)
 	}
 
-	err = cmd.Wait()
-	if err != nil {
-		return fmt.Errorf("git command returned a failure: %w\nstderr: %s", err, errorBuffer.String())
-	}
-
-	return err
+	return nil
 }
 
-func CreateBundle(repoDir string, filename string) (bool, error) {
-	err := GitCommand(
+func (g *gitHelper) CreateBundle(ctx context.Context, repoDir string, filename string) (bool, error) {
+	err := g.gitCommand(ctx,
 		"-C", repoDir, "bundle", "create",
 		filename, "--branches")
 	if err != nil {
@@ -86,11 +81,11 @@ func CreateBundle(repoDir string, filename string) (bool, error) {
 	return true, nil
 }
 
-func CreateBundleFromRefs(repoDir string, filename string, refs map[string]string) error {
+func (g *gitHelper) CreateBundleFromRefs(ctx context.Context, repoDir string, filename string, refs map[string]string) error {
 	refNames := []string{}
 
 	for ref, oid := range refs {
-		err := GitCommand("-C", repoDir, "branch", "-f", ref, oid)
+		err := g.gitCommand(ctx, "-C", repoDir, "branch", "-f", ref, oid)
 		if err != nil {
 			return fmt.Errorf("failed to create ref %s: %w", ref, err)
 		}
@@ -98,7 +93,7 @@ func CreateBundleFromRefs(repoDir string, filename string, refs map[string]strin
 		refNames = append(refNames, ref)
 	}
 
-	err := GitCommandWithStdin(
+	err := g.gitCommandWithStdin(ctx,
 		refNames,
 		"-C", repoDir, "bundle", "create",
 		filename, "--stdin")
@@ -109,8 +104,8 @@ func CreateBundleFromRefs(repoDir string, filename string, refs map[string]strin
 	return nil
 }
 
-func CreateIncrementalBundle(repoDir string, filename string, prereqs []string) (bool, error) {
-	err := GitCommandWithStdin(
+func (g *gitHelper) CreateIncrementalBundle(ctx context.Context, repoDir string, filename string, prereqs []string) (bool, error) {
+	err := g.gitCommandWithStdin(ctx,
 		prereqs, "-C", repoDir, "bundle", "create",
 		filename, "--stdin", "--branches")
 	if err != nil {
@@ -121,4 +116,24 @@ func CreateIncrementalBundle(repoDir string, filename string, prereqs []string) 
 	}
 
 	return true, nil
+}
+
+func (g *gitHelper) CloneBareRepo(ctx context.Context, url string, destination string) error {
+	gitErr := g.gitCommand(ctx, "clone", "--bare", url, destination)
+
+	if gitErr != nil {
+		return g.logger.Errorf(ctx, "failed to clone repository: %w", gitErr)
+	}
+
+	gitErr = g.gitCommand(ctx, "-C", destination, "config", "remote.origin.fetch", "+refs/heads/*:refs/heads/*")
+	if gitErr != nil {
+		return g.logger.Errorf(ctx, "failed to configure refspec: %w", gitErr)
+	}
+
+	gitErr = g.gitCommand(ctx, "-C", destination, "fetch", "origin")
+	if gitErr != nil {
+		return g.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
+	}
+
+	return nil
 }

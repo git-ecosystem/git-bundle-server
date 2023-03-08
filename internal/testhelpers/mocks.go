@@ -3,9 +3,11 @@ package testhelpers
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"os/user"
 	"runtime"
 
+	"github.com/github/git-bundle-server/internal/cmd"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -59,6 +61,14 @@ func (l *MockTraceLogger) Region(ctx context.Context, category string, label str
 		fnArgs = l.Called(ctx, category, label)
 	}
 	return mockWithDefault(fnArgs, 0, ctx), mockWithDefault(fnArgs, 1, func() {})
+}
+
+func (l *MockTraceLogger) ChildProcess(ctx context.Context, cmd *exec.Cmd) (func(error), func()) {
+	fnArgs := mock.Arguments{}
+	if methodIsMocked(&l.Mock) {
+		fnArgs = l.Called(ctx, cmd)
+	}
+	return mockWithDefault(fnArgs, 0, func(error) {}), mockWithDefault(fnArgs, 1, func() {})
 }
 
 func (l *MockTraceLogger) LogCommand(ctx context.Context, commandName string) context.Context {
@@ -121,13 +131,28 @@ type MockCommandExecutor struct {
 	mock.Mock
 }
 
-func (m *MockCommandExecutor) Run(command string, args ...string) (int, error) {
-	fnArgs := m.Called(command, args)
+func (m *MockCommandExecutor) RunStdout(ctx context.Context, command string, args ...string) (int, error) {
+	fnArgs := m.Called(ctx, command, args)
+	return fnArgs.Int(0), fnArgs.Error(1)
+}
+
+func (m *MockCommandExecutor) RunQuiet(ctx context.Context, command string, args ...string) (int, error) {
+	fnArgs := m.Called(ctx, command, args)
+	return fnArgs.Int(0), fnArgs.Error(1)
+}
+
+func (m *MockCommandExecutor) Run(ctx context.Context, command string, args []string, settings ...cmd.Setting) (int, error) {
+	fnArgs := m.Called(ctx, command, args, settings)
 	return fnArgs.Int(0), fnArgs.Error(1)
 }
 
 type MockFileSystem struct {
 	mock.Mock
+}
+
+func (m *MockFileSystem) GetLocalExecutable(name string) (string, error) {
+	fnArgs := m.Called(name)
+	return fnArgs.String(0), fnArgs.Error(1)
 }
 
 func (m *MockFileSystem) FileExists(filename string) (bool, error) {

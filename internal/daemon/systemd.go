@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/github/git-bundle-server/internal/cmd"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/log"
 )
@@ -25,14 +26,14 @@ const SystemdUnitNotInstalledErrorCode int = 5
 type systemd struct {
 	logger     log.TraceLogger
 	user       common.UserProvider
-	cmdExec    common.CommandExecutor
+	cmdExec    cmd.CommandExecutor
 	fileSystem common.FileSystem
 }
 
 func NewSystemdProvider(
 	l log.TraceLogger,
 	u common.UserProvider,
-	c common.CommandExecutor,
+	c cmd.CommandExecutor,
 	fs common.FileSystem,
 ) DaemonProvider {
 	return &systemd{
@@ -44,7 +45,7 @@ func NewSystemdProvider(
 }
 
 func (s *systemd) reloadDaemon(ctx context.Context) error {
-	exitCode, err := s.cmdExec.Run("systemctl", "--user", "daemon-reload")
+	exitCode, err := s.cmdExec.RunQuiet(ctx, "systemctl", "--user", "daemon-reload")
 	if err != nil {
 		return s.logger.Error(ctx, err)
 	}
@@ -104,7 +105,7 @@ func (s *systemd) Create(ctx context.Context, config *DaemonConfig, force bool) 
 
 func (s *systemd) Start(ctx context.Context, label string) error {
 	// TODO: warn user if already running
-	exitCode, err := s.cmdExec.Run("systemctl", "--user", "start", label)
+	exitCode, err := s.cmdExec.RunQuiet(ctx, "systemctl", "--user", "start", label)
 	if err != nil {
 		return s.logger.Error(ctx, err)
 	}
@@ -118,7 +119,7 @@ func (s *systemd) Start(ctx context.Context, label string) error {
 
 func (s *systemd) Stop(ctx context.Context, label string) error {
 	// TODO: warn user if already stopped
-	exitCode, err := s.cmdExec.Run("systemctl", "--user", "stop", label)
+	exitCode, err := s.cmdExec.RunQuiet(ctx, "systemctl", "--user", "stop", label)
 	if err != nil {
 		return s.logger.Error(ctx, err)
 	}
