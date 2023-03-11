@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,6 +33,15 @@ type Bundle struct {
 	URI           string
 	Filename      string
 	CreationToken int64
+}
+
+func NewBundle(repo *core.Repository, timestamp int64) Bundle {
+	bundleName := fmt.Sprintf("bundle-%d.bundle", timestamp)
+	return Bundle{
+		URI:           path.Join(".", bundleName),
+		Filename:      filepath.Join(repo.WebDir, bundleName),
+		CreationToken: timestamp,
+	}
 }
 
 type BundleList struct {
@@ -80,16 +91,7 @@ func NewBundleProvider(
 }
 
 func (b *bundleProvider) CreateInitialBundle(ctx context.Context, repo *core.Repository) Bundle {
-	timestamp := time.Now().UTC().Unix()
-	bundleName := "bundle-" + fmt.Sprint(timestamp) + ".bundle"
-	bundleFile := repo.WebDir + "/" + bundleName
-	bundle := Bundle{
-		URI:           "./" + bundleName,
-		Filename:      bundleFile,
-		CreationToken: timestamp,
-	}
-
-	return bundle
+	return NewBundle(repo, time.Now().UTC().Unix())
 }
 
 func (b *bundleProvider) createDistinctBundle(repo *core.Repository, list *BundleList) Bundle {
@@ -102,15 +104,7 @@ func (b *bundleProvider) createDistinctBundle(repo *core.Repository, list *Bundl
 		timestamp = maxTimestamp + 1
 	}
 
-	bundleName := "bundle-" + fmt.Sprint(timestamp) + ".bundle"
-	bundleFile := repo.WebDir + "/" + bundleName
-	bundle := Bundle{
-		URI:           "./" + bundleName,
-		Filename:      bundleFile,
-		CreationToken: timestamp,
-	}
-
-	return bundle
+	return NewBundle(repo, timestamp)
 }
 
 func (b *bundleProvider) CreateSingletonList(ctx context.Context, bundle Bundle) *BundleList {
@@ -365,11 +359,7 @@ func (b *bundleProvider) CollapseList(ctx context.Context, repo *core.Repository
 	// branches that were never merged and may have been force-pushed or
 	// deleted.
 
-	bundle := Bundle{
-		CreationToken: maxTimestamp,
-		Filename:      fmt.Sprintf("%s/base-%d.bundle", repo.WebDir, maxTimestamp),
-		URI:           fmt.Sprintf("./base-%d.bundle", maxTimestamp),
-	}
+	bundle := NewBundle(repo, maxTimestamp)
 
 	err := b.gitHelper.CreateBundleFromRefs(ctx, repo.RepoDir, bundle.Filename, refs)
 	if err != nil {
