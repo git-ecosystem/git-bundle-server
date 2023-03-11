@@ -33,6 +33,7 @@ func BuildGitBundleServerContainer(logger log.TraceLogger) *DependencyContainer 
 	registerDependency(container, func(ctx context.Context) bundles.BundleProvider {
 		return bundles.NewBundleProvider(
 			logger,
+			GetDependency[common.FileSystem](ctx, container),
 			GetDependency[git.GitHelper](ctx, container),
 		)
 	})

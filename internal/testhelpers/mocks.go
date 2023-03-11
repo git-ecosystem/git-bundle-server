@@ -3,11 +3,13 @@ package testhelpers
 import (
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"os/user"
 	"runtime"
 
 	"github.com/github/git-bundle-server/internal/cmd"
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -163,6 +165,11 @@ func (m *MockFileSystem) FileExists(filename string) (bool, error) {
 func (m *MockFileSystem) WriteFile(filename string, content []byte) error {
 	fnArgs := m.Called(filename, content)
 	return fnArgs.Error(0)
+}
+
+func (m *MockFileSystem) WriteLockFileFunc(filename string, writeFunc func(io.Writer) error) (common.LockFile, error) {
+	fnArgs := m.Called(filename, writeFunc)
+	return fnArgs.Get(0).(common.LockFile), fnArgs.Error(1)
 }
 
 func (m *MockFileSystem) DeleteFile(filename string) (bool, error) {

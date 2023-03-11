@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -16,11 +17,30 @@ const (
 	DefaultDirPermissions  fs.FileMode = 0o755
 )
 
+type LockFile interface {
+	Commit() error
+	Rollback() error
+}
+
+type lockFile struct {
+	filename     string
+	lockFilename string
+}
+
+func (l *lockFile) Commit() error {
+	return os.Rename(l.lockFilename, l.filename)
+}
+
+func (l *lockFile) Rollback() error {
+	return os.Remove(l.lockFilename)
+}
+
 type FileSystem interface {
 	GetLocalExecutable(name string) (string, error)
 
 	FileExists(filename string) (bool, error)
 	WriteFile(filename string, content []byte) error
+	WriteLockFileFunc(filename string, writeFunc func(io.Writer) error) (LockFile, error)
 	DeleteFile(filename string) (bool, error)
 	ReadFileLines(filename string) ([]string, error)
 }
@@ -84,6 +104,37 @@ func (f *fileSystem) WriteFile(filename string, content []byte) error {
 		return fmt.Errorf("could not write file: %w", err)
 	}
 	return nil
+}
+
+func (f *fileSystem) WriteLockFileFunc(filename string, writeFunc func(io.Writer) error) (LockFile, error) {
+	err := f.createLeadingDirs(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	lockFilename := filename + ".lock"
+	lock, err := os.OpenFile(lockFilename, os.O_WRONLY|os.O_CREATE, DefaultFilePermissions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	lockFile := &lockFile{filename: filename, lockFilename: lockFilename}
+
+	err = writeFunc(lock)
+	if err != nil {
+		// Try to close & rollback - don't worry about errors, we're already failing.
+		lock.Close()
+		lockFile.Rollback()
+		return nil, err
+	}
+
+	err = lock.Close()
+	if err != nil {
+		// Try to rollback - don't worry about errors, we're already failing.
+		lockFile.Rollback()
+		return nil, fmt.Errorf("failed to close lock file: %w", err)
+	}
+
+	return lockFile, nil
 }
 
 func (f *fileSystem) DeleteFile(filename string) (bool, error) {
