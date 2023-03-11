@@ -308,7 +308,7 @@ func (t *Trace2) Errorf(ctx context.Context, format string, a ...any) error {
 
 	err := loggedError(fmt.Errorf(format, a...))
 
-	if isLogged {
+	if !isLogged {
 		_, sharedFields := t.sharedFields(ctx)
 		t.logger.Info("error", sharedFields.with(
 			zap.String("msg", err.Error()),
