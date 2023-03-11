@@ -51,17 +51,19 @@ func (g *gitHelper) gitCommandWithStdin(ctx context.Context, stdinLines []string
 	for line := range stdinLines {
 		buffer.Write([]byte(stdinLines[line] + "\n"))
 	}
+
+	stderr := bytes.Buffer{}
 	exitCode, err := g.cmdExec.Run(ctx, "git", args,
 		cmd.Stdin(&buffer),
 		cmd.Stdout(os.Stdout),
-		cmd.Stderr(os.Stderr),
+		cmd.Stderr(&stderr),
 		cmd.Env([]string{"LC_CTYPE=C"}),
 	)
 
 	if err != nil {
 		return g.logger.Error(ctx, err)
 	} else if exitCode != 0 {
-		return g.logger.Errorf(ctx, "'git' exited with status %d", exitCode)
+		return g.logger.Errorf(ctx, "'git' exited with status %d\n%s", exitCode, stderr.String())
 	}
 
 	return nil
