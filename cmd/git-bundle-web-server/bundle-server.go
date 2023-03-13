@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
@@ -101,7 +102,20 @@ func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 
 	var fileToServe string
 	if filename == "" {
-		fileToServe = filepath.Join(repository.WebDir, "bundle-list")
+		if path[len(path)-1] == '/' {
+			// Trailing slash, so the bundle URIs should be relative to the
+			// request's URL as if it were a directory
+			fileToServe = filepath.Join(repository.WebDir, bundles.BundleListFilename)
+		} else {
+			// No trailing slash, so the bundle URIs should be relative to the
+			// request's URL as if it were a file
+			fileToServe = filepath.Join(repository.WebDir, bundles.RepoBundleListFilename)
+		}
+	} else if filename == bundles.BundleListFilename || filename == bundles.RepoBundleListFilename {
+		// If the request identifies a non-bundle "reserved" file, return 404
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Printf("Failed to open file\n")
+		return
 	} else {
 		fileToServe = filepath.Join(repository.WebDir, filename)
 	}
