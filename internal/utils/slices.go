@@ -9,3 +9,10 @@ func Map[T any, S any](in []T, fn func(t T) S) []S {
 	}
 	return out
 }
+
+func Reduce[T any, S any](in []T, acc S, fn func(t T, acc S) S) S {
+	for _, t := range in {
+		acc = fn(t, acc)
+	}
+	return acc
+}
