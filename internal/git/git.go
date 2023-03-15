@@ -16,6 +16,7 @@ type GitHelper interface {
 	CreateBundleFromRefs(ctx context.Context, repoDir string, filename string, refs map[string]string) error
 	CreateIncrementalBundle(ctx context.Context, repoDir string, filename string, prereqs []string) (bool, error)
 	CloneBareRepo(ctx context.Context, url string, destination string) error
+	UpdateBareRepo(ctx context.Context, repoDir string) error
 }
 
 type gitHelper struct {
@@ -133,6 +134,15 @@ func (g *gitHelper) CloneBareRepo(ctx context.Context, url string, destination s
 	}
 
 	gitErr = g.gitCommand(ctx, "-C", destination, "fetch", "origin")
+	if gitErr != nil {
+		return g.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
+	}
+
+	return nil
+}
+
+func (g *gitHelper) UpdateBareRepo(ctx context.Context, repoDir string) error {
+	gitErr := g.gitCommand(ctx, "-C", repoDir, "fetch", "origin")
 	if gitErr != nil {
 		return g.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
 	}

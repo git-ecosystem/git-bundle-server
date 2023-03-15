@@ -360,6 +360,12 @@ func (b *bundleProvider) CreateIncrementalBundle(ctx context.Context, repo *core
 	ctx, exitRegion := b.logger.Region(ctx, "bundles", "create_incremental_bundle")
 	defer exitRegion()
 
+	// Fetch latest updates to repo
+	err := b.gitHelper.UpdateBareRepo(ctx, repo.RepoDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch updates to repo: %w", err)
+	}
+
 	bundle := b.createDistinctBundle(repo, list)
 
 	lines, err := b.getAllPrereqsForIncrementalBundle(list)
