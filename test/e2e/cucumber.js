@@ -7,5 +7,8 @@ module.exports = {
     formatOptions: {
       snippetInterface: 'async-await'
     },
+    worldParameters: {
+      bundleWebServerCommand: '../../bin/git-bundle-web-server',
+    }
   }
 }
