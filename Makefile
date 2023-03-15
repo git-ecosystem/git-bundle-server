@@ -22,6 +22,11 @@ GOARCH := $(shell go env GOARCH)
 SUPPORTED_PACKAGE_GOARCHES := amd64 arm64
 PACKAGE_ARCH := $(GOARCH)
 
+# Guard against environment variables
+APPLE_APP_IDENTITY =
+APPLE_INST_IDENTITY =
+APPLE_KEYCHAIN_PROFILE =
+
 # Build targets
 .PHONY: build
 build:
@@ -95,7 +100,8 @@ else ifeq ($(GOOS),darwin)
 # Steps:
 #   1. Layout files in _dist/pkg/payload/ as they'll be installed (including
 #      uninstall.sh script).
-#   2. Create the product archive in _dist/.
+#   2. (Optional) Codesign the package contents in place.
+#   3. Create the product archive in _dist/.
 
 # Platform-specific variables
 PKGDIR := $(DISTDIR)/pkg
@@ -110,12 +116,41 @@ $(PKGDIR)/payload: check-arch build doc
 			    --uninstaller="$(CURDIR)/scripts/uninstall.sh" \
 			    --install-root="$(PKGDIR)/payload"
 
+ifdef APPLE_APP_IDENTITY
+.PHONY: codesign
+codesign: $(PKGDIR)/payload
+	@echo
+	@echo "======== Codesigning package contents ========"
+	@build/package/pkg/codesign.sh --payload="$(PKGDIR)/payload" \
+				       --identity="$(APPLE_APP_IDENTITY)" \
+				       --entitlements="$(CURDIR)/build/package/pkg/entitlements.xml"
+
+$(PKG_FILENAME): codesign
+endif
+
 $(PKG_FILENAME): check-version $(PKGDIR)/payload
 	@echo
 	@echo "======== Creating product archive package ========"
 	@build/package/pkg/pack.sh --version="$(VERSION)" \
 				   --payload="$(PKGDIR)/payload" \
+				   --identity="$(APPLE_INST_IDENTITY)" \
 				   --output="$(PKG_FILENAME)"
+
+# Notarization can only happen if the package is fully signed
+ifdef APPLE_APP_IDENTITY
+ifdef APPLE_INST_IDENTITY
+ifdef APPLE_KEYCHAIN_PROFILE
+.PHONY: notarize
+notarize: $(PKG_FILENAME)
+	@echo
+	@echo "======== Notarizing package ========"
+	@build/package/pkg/notarize.sh --package="$(PKG_FILENAME)" \
+				       --keychain-profile="$(APPLE_KEYCHAIN_PROFILE)"
+
+package: notarize
+endif
+endif
+endif
 
 .PHONY: package
 package: $(PKG_FILENAME)
