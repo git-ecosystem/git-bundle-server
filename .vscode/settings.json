@@ -1,4 +1,5 @@
 {
+    // File formatting
     "[markdown]": {
         "editor.detectIndentation": false,
         "editor.insertSpaces": false,
@@ -35,5 +36,13 @@
         "prerm": "shellscript",
         "postinstall": "shellscript",
         "Makefile": "makefile"
-    }
+    },
+
+    // Cucumber settings
+    "cucumber.features": [
+        "test/e2e/features/**/*.feature",
+    ],
+    "cucumber.glue": [
+        "test/e2e/features/**/*.ts"
+    ],
 }
