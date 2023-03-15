@@ -16,6 +16,7 @@ type GitHelper interface {
 	CreateBundleFromRefs(ctx context.Context, repoDir string, filename string, refs map[string]string) error
 	CreateIncrementalBundle(ctx context.Context, repoDir string, filename string, prereqs []string) (bool, error)
 	CloneBareRepo(ctx context.Context, url string, destination string) error
+	UpdateBareRepo(ctx context.Context, repoDir string) error
 }
 
 type gitHelper struct {
@@ -51,17 +52,19 @@ func (g *gitHelper) gitCommandWithStdin(ctx context.Context, stdinLines []string
 	for line := range stdinLines {
 		buffer.Write([]byte(stdinLines[line] + "\n"))
 	}
+
+	stderr := bytes.Buffer{}
 	exitCode, err := g.cmdExec.Run(ctx, "git", args,
 		cmd.Stdin(&buffer),
 		cmd.Stdout(os.Stdout),
-		cmd.Stderr(os.Stderr),
+		cmd.Stderr(&stderr),
 		cmd.Env([]string{"LC_CTYPE=C"}),
 	)
 
 	if err != nil {
 		return g.logger.Error(ctx, err)
 	} else if exitCode != 0 {
-		return g.logger.Errorf(ctx, "'git' exited with status %d", exitCode)
+		return g.logger.Errorf(ctx, "'git' exited with status %d\n%s", exitCode, stderr.String())
 	}
 
 	return nil
@@ -131,6 +134,15 @@ func (g *gitHelper) CloneBareRepo(ctx context.Context, url string, destination s
 	}
 
 	gitErr = g.gitCommand(ctx, "-C", destination, "fetch", "origin")
+	if gitErr != nil {
+		return g.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
+	}
+
+	return nil
+}
+
+func (g *gitHelper) UpdateBareRepo(ctx context.Context, repoDir string) error {
+	gitErr := g.gitCommand(ctx, "-C", repoDir, "fetch", "origin")
 	if gitErr != nil {
 		return g.logger.Errorf(ctx, "failed to fetch latest refs: %w", gitErr)
 	}

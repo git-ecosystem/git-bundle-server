@@ -5,15 +5,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/git"
 	"github.com/github/git-bundle-server/internal/log"
+)
+
+const (
+	BundleListJsonFilename string = "bundle-list.json"
+	BundleListFilename     string = "bundle-list"
+	RepoBundleListFilename string = "repo-bundle-list"
 )
 
 type BundleHeader struct {
@@ -28,15 +38,40 @@ type BundleHeader struct {
 }
 
 type Bundle struct {
-	URI           string
-	Filename      string
+	// The absolute path to the bundle from the root of the bundle web server,
+	// typically '/org/route/filename'.
+	URI string
+
+	// The absolute path to the bundle on disk
+	Filename string
+
+	// The creation token used in Git's 'creationToken' heuristic
 	CreationToken int64
 }
 
+func NewBundle(repo *core.Repository, timestamp int64) Bundle {
+	bundleName := fmt.Sprintf("bundle-%d.bundle", timestamp)
+	return Bundle{
+		URI:           path.Join("/", repo.Route, bundleName),
+		Filename:      filepath.Join(repo.WebDir, bundleName),
+		CreationToken: timestamp,
+	}
+}
+
 type BundleList struct {
-	Version int
-	Mode    string
-	Bundles map[int64]Bundle
+	Version   int
+	Mode      string
+	Heuristic string
+	Bundles   map[int64]Bundle
+}
+
+func NewBundleList() *BundleList {
+	return &BundleList{
+		Version:   1,
+		Mode:      "any",
+		Heuristic: "creationToken",
+		Bundles:   make(map[int64]Bundle),
+	}
 }
 
 func (list *BundleList) addBundle(bundle Bundle) {
@@ -65,31 +100,25 @@ type BundleProvider interface {
 }
 
 type bundleProvider struct {
-	logger    log.TraceLogger
-	gitHelper git.GitHelper
+	logger     log.TraceLogger
+	fileSystem common.FileSystem
+	gitHelper  git.GitHelper
 }
 
 func NewBundleProvider(
 	l log.TraceLogger,
+	fs common.FileSystem,
 	g git.GitHelper,
 ) BundleProvider {
 	return &bundleProvider{
-		logger:    l,
-		gitHelper: g,
+		logger:     l,
+		fileSystem: fs,
+		gitHelper:  g,
 	}
 }
 
 func (b *bundleProvider) CreateInitialBundle(ctx context.Context, repo *core.Repository) Bundle {
-	timestamp := time.Now().UTC().Unix()
-	bundleName := "bundle-" + fmt.Sprint(timestamp) + ".bundle"
-	bundleFile := repo.WebDir + "/" + bundleName
-	bundle := Bundle{
-		URI:           "./" + bundleName,
-		Filename:      bundleFile,
-		CreationToken: timestamp,
-	}
-
-	return bundle
+	return NewBundle(repo, time.Now().UTC().Unix())
 }
 
 func (b *bundleProvider) createDistinctBundle(repo *core.Repository, list *BundleList) Bundle {
@@ -102,89 +131,129 @@ func (b *bundleProvider) createDistinctBundle(repo *core.Repository, list *Bundl
 		timestamp = maxTimestamp + 1
 	}
 
-	bundleName := "bundle-" + fmt.Sprint(timestamp) + ".bundle"
-	bundleFile := repo.WebDir + "/" + bundleName
-	bundle := Bundle{
-		URI:           "./" + bundleName,
-		Filename:      bundleFile,
-		CreationToken: timestamp,
-	}
-
-	return bundle
+	return NewBundle(repo, timestamp)
 }
 
 func (b *bundleProvider) CreateSingletonList(ctx context.Context, bundle Bundle) *BundleList {
-	list := BundleList{1, "all", make(map[int64]Bundle)}
-
+	list := NewBundleList()
 	list.addBundle(bundle)
-
-	return &list
+	return list
 }
 
-// Given a BundleList
+// Given a BundleList, write the bundle list content to the web directory.
 func (b *bundleProvider) WriteBundleList(ctx context.Context, list *BundleList, repo *core.Repository) error {
 	//lint:ignore SA4006 always override the ctx with the result from 'Region()'
 	ctx, exitRegion := b.logger.Region(ctx, "bundles", "write_bundle_list")
 	defer exitRegion()
 
-	listFile := repo.WebDir + "/bundle-list"
-	jsonFile := repo.RepoDir + "/bundle-list.json"
-
-	// TODO: Formalize lockfile concept.
-	f, err := os.OpenFile(listFile+".lock", os.O_WRONLY|os.O_CREATE, 0o600)
-	if err != nil {
-		return fmt.Errorf("failure to open file: %w", err)
-	}
-
-	out := bufio.NewWriter(f)
-
-	fmt.Fprintf(
-		out, "[bundle]\n\tversion = %d\n\tmode = %s\n\n",
-		list.Version, list.Mode)
-
-	keys := list.sortedCreationTokens()
-
-	for _, token := range keys {
-		bundle := list.Bundles[token]
-		fmt.Fprintf(
-			out, "[bundle \"%d\"]\n\turi = %s\n\tcreationToken = %d\n\n",
-			token, bundle.URI, token)
-	}
-
-	out.Flush()
-	err = f.Close()
-	if err != nil {
-		return fmt.Errorf("failed to close lock file: %w", err)
-	}
-
-	f, err = os.OpenFile(jsonFile+".lock", os.O_WRONLY|os.O_CREATE, 0o600)
-	if err != nil {
-		return fmt.Errorf("failed to open JSON file: %w", err)
-	}
-
-	data, jsonErr := json.Marshal(list)
-	if jsonErr != nil {
-		return fmt.Errorf("failed to convert list to JSON: %w", err)
-	}
-
-	written := 0
-	for written < len(data) {
-		n, writeErr := f.Write(data[written:])
-		if writeErr != nil {
-			return fmt.Errorf("failed to write JSON: %w", err)
+	var listLockFile, repoListLockFile, jsonLockFile common.LockFile
+	rollbackAll := func() {
+		if listLockFile != nil {
+			listLockFile.Rollback()
 		}
-		written += n
+		if repoListLockFile != nil {
+			repoListLockFile.Rollback()
+		}
+		if jsonLockFile != nil {
+			jsonLockFile.Rollback()
+		}
 	}
 
-	f.Sync()
-	f.Close()
+	// Write the bundle list files: one for requests with a trailing slash
+	// (where the relative bundle paths are '<bundlefile>'), one for requests
+	// without a trailing slash (where the relative bundle paths are
+	// '<repo>/<bundlefile>').
+	keys := list.sortedCreationTokens()
+	writeListFile := func(f io.Writer, requestUri string) error {
+		out := bufio.NewWriter(f)
+		defer out.Flush()
 
-	renameErr := os.Rename(jsonFile+".lock", jsonFile)
-	if renameErr != nil {
-		return fmt.Errorf("failed to rename JSON file: %w", renameErr)
+		fmt.Fprintf(
+			out, "[bundle]\n\tversion = %d\n\tmode = %s\n\theuristic = %s\n\n",
+			list.Version, list.Mode, list.Heuristic)
+
+		uriBase := path.Dir(requestUri) + "/"
+		for _, token := range keys {
+			bundle := list.Bundles[token]
+
+			// Get the URI relative to the bundle server root
+			uri := strings.TrimPrefix(bundle.URI, uriBase)
+			if uri == bundle.URI {
+				panic("error resolving bundle URI paths")
+			}
+
+			fmt.Fprintf(
+				out, "[bundle \"%d\"]\n\turi = %s\n\tcreationToken = %d\n\n",
+				token, uri, token)
+		}
+		return nil
 	}
 
-	return os.Rename(listFile+".lock", listFile)
+	listLockFile, err := b.fileSystem.WriteLockFileFunc(
+		filepath.Join(repo.WebDir, BundleListFilename),
+		func(f io.Writer) error {
+			return writeListFile(f, path.Join("/", repo.Route)+"/")
+		},
+	)
+	if err != nil {
+		rollbackAll()
+		return err
+	}
+
+	repoListLockFile, err = b.fileSystem.WriteLockFileFunc(
+		filepath.Join(repo.WebDir, RepoBundleListFilename),
+		func(f io.Writer) error {
+			return writeListFile(f, path.Join("/", repo.Route))
+		},
+	)
+	if err != nil {
+		rollbackAll()
+		return err
+	}
+
+	// Write the (internal-use) JSON representation of the bundle list
+	jsonLockFile, err = b.fileSystem.WriteLockFileFunc(
+		filepath.Join(repo.RepoDir, BundleListJsonFilename),
+		func(f io.Writer) error {
+			data, err := json.Marshal(list)
+			if err != nil {
+				return fmt.Errorf("failed to convert list to JSON: %w", err)
+			}
+
+			written := 0
+			for written < len(data) {
+				n, writeErr := f.Write(data[written:])
+				if writeErr != nil {
+					return fmt.Errorf("failed to write JSON: %w", err)
+				}
+				written += n
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		rollbackAll()
+		return err
+	}
+
+	// Commit all lockfiles
+	err = jsonLockFile.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to rename JSON file: %w", err)
+	}
+
+	err = listLockFile.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to rename bundle list file: %w", err)
+	}
+
+	err = repoListLockFile.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to rename repo-level bundle list file: %w", err)
+	}
+
+	return nil
 }
 
 func (b *bundleProvider) GetBundleList(ctx context.Context, repo *core.Repository) (*BundleList, error) {
@@ -192,7 +261,7 @@ func (b *bundleProvider) GetBundleList(ctx context.Context, repo *core.Repositor
 	ctx, exitRegion := b.logger.Region(ctx, "bundles", "get_bundle_list")
 	defer exitRegion()
 
-	jsonFile := repo.RepoDir + "/bundle-list.json"
+	jsonFile := filepath.Join(repo.RepoDir, BundleListJsonFilename)
 
 	reader, err := os.Open(jsonFile)
 	if err != nil {
@@ -299,6 +368,12 @@ func (b *bundleProvider) CreateIncrementalBundle(ctx context.Context, repo *core
 	ctx, exitRegion := b.logger.Region(ctx, "bundles", "create_incremental_bundle")
 	defer exitRegion()
 
+	// Fetch latest updates to repo
+	err := b.gitHelper.UpdateBareRepo(ctx, repo.RepoDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch updates to repo: %w", err)
+	}
+
 	bundle := b.createDistinctBundle(repo, list)
 
 	lines, err := b.getAllPrereqsForIncrementalBundle(list)
@@ -365,11 +440,7 @@ func (b *bundleProvider) CollapseList(ctx context.Context, repo *core.Repository
 	// branches that were never merged and may have been force-pushed or
 	// deleted.
 
-	bundle := Bundle{
-		CreationToken: maxTimestamp,
-		Filename:      fmt.Sprintf("%s/base-%d.bundle", repo.WebDir, maxTimestamp),
-		URI:           fmt.Sprintf("./base-%d.bundle", maxTimestamp),
-	}
+	bundle := NewBundle(repo, maxTimestamp)
 
 	err := b.gitHelper.CreateBundleFromRefs(ctx, repo.RepoDir, bundle.Filename, refs)
 	if err != nil {

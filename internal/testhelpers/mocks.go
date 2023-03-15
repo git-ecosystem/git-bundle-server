@@ -3,11 +3,13 @@ package testhelpers
 import (
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"os/user"
 	"runtime"
 
 	"github.com/github/git-bundle-server/internal/cmd"
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -146,6 +148,20 @@ func (m *MockCommandExecutor) Run(ctx context.Context, command string, args []st
 	return fnArgs.Int(0), fnArgs.Error(1)
 }
 
+type MockLockFile struct {
+	mock.Mock
+}
+
+func (m *MockLockFile) Commit() error {
+	fnArgs := m.Called()
+	return fnArgs.Error(0)
+}
+
+func (m *MockLockFile) Rollback() error {
+	fnArgs := m.Called()
+	return fnArgs.Error(0)
+}
+
 type MockFileSystem struct {
 	mock.Mock
 }
@@ -165,6 +181,11 @@ func (m *MockFileSystem) WriteFile(filename string, content []byte) error {
 	return fnArgs.Error(0)
 }
 
+func (m *MockFileSystem) WriteLockFileFunc(filename string, writeFunc func(io.Writer) error) (common.LockFile, error) {
+	fnArgs := m.Called(filename, writeFunc)
+	return fnArgs.Get(0).(common.LockFile), fnArgs.Error(1)
+}
+
 func (m *MockFileSystem) DeleteFile(filename string) (bool, error) {
 	fnArgs := m.Called(filename)
 	return fnArgs.Bool(0), fnArgs.Error(1)
@@ -178,4 +199,28 @@ func (m *MockFileSystem) ReadFileLines(filename string) ([]string, error) {
 func (m *MockFileSystem) UserHomeDir() (string, error) {
 	fnArgs := m.Called()
 	return fnArgs.String(0), fnArgs.Error(1)
+}
+
+type MockGitHelper struct {
+	mock.Mock
+}
+
+func (m *MockGitHelper) CreateBundle(ctx context.Context, repoDir string, filename string) (bool, error) {
+	fnArgs := m.Called(ctx, repoDir, filename)
+	return fnArgs.Bool(0), fnArgs.Error(1)
+}
+
+func (m *MockGitHelper) CreateBundleFromRefs(ctx context.Context, repoDir string, filename string, refs map[string]string) error {
+	fnArgs := m.Called(ctx, repoDir, filename, refs)
+	return fnArgs.Error(0)
+}
+
+func (m *MockGitHelper) CreateIncrementalBundle(ctx context.Context, repoDir string, filename string, prereqs []string) (bool, error) {
+	fnArgs := m.Called(ctx, repoDir, filename, prereqs)
+	return fnArgs.Bool(0), fnArgs.Error(1)
+}
+
+func (m *MockGitHelper) CloneBareRepo(ctx context.Context, url string, destination string) error {
+	fnArgs := m.Called(ctx, url, destination)
+	return fnArgs.Error(0)
 }

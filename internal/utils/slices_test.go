@@ -79,3 +79,58 @@ func TestMap(t *testing.T) {
 		tt.runTest(t)
 	}
 }
+
+type reduceTest[T any, S any] struct {
+	title string
+
+	// Inputs
+	in  []T
+	acc S
+	fn  func(T, S) S
+
+	// Outputs
+	expectedOut S
+}
+
+var reduceTests = []testable{
+	reduceTest[int, int]{
+		title: "int -> int",
+
+		in:  []int{1, 2, 3},
+		acc: 0,
+		fn:  func(t int, acc int) int { return acc + t },
+
+		expectedOut: 6,
+	},
+	reduceTest[string, []string]{
+		title: "string -> []string",
+
+		in:  []string{"A", "B", "C"},
+		acc: []string{"test"},
+		fn:  func(t string, acc []string) []string { return append(acc, t) },
+
+		expectedOut: []string{"test", "A", "B", "C"},
+	},
+	reduceTest[twoInts, int]{
+		title: "named struct -> int",
+
+		in:  []twoInts{{int1: 12, int2: 34}, {int1: 56, int2: 78}},
+		acc: 0,
+		fn:  func(t twoInts, acc int) int { return acc + t.int1 + t.int2 },
+
+		expectedOut: 180,
+	},
+}
+
+func (tt reduceTest[T, S]) runTest(t *testing.T) {
+	t.Run(tt.title, func(t *testing.T) {
+		out := utils.Reduce(tt.in, tt.acc, tt.fn)
+		assert.Equal(t, tt.expectedOut, out)
+	})
+}
+
+func TestReduce(t *testing.T) {
+	for _, tt := range reduceTests {
+		tt.runTest(t)
+	}
+}

@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -307,7 +308,7 @@ func (t *Trace2) Errorf(ctx context.Context, format string, a ...any) error {
 
 	err := loggedError(fmt.Errorf(format, a...))
 
-	if isLogged {
+	if !isLogged {
 		_, sharedFields := t.sharedFields(ctx)
 		t.logger.Info("error", sharedFields.with(
 			zap.String("msg", err.Error()),
@@ -322,9 +323,11 @@ func (t *Trace2) Exit(ctx context.Context, exitCode int) {
 }
 
 func (t *Trace2) Fatal(ctx context.Context, err error) {
-	t.Exit(ctx, 1)
+	t.logExit(ctx, 1)
+	log.Fatal(err)
 }
 
 func (t *Trace2) Fatalf(ctx context.Context, format string, a ...any) {
-	t.Exit(ctx, 1)
+	t.logExit(ctx, 1)
+	log.Fatalf(format, a...)
 }

@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/github/git-bundle-server/internal/bundles"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
@@ -70,7 +73,7 @@ func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 	defer exitRegion()
 
 	path := r.URL.Path
-	owner, repo, file, err := b.parseRoute(ctx, path)
+	owner, repo, filename, err := b.parseRoute(ctx, path)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Printf("Failed to parse route: %s\n", err)
@@ -97,20 +100,35 @@ func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if file == "" {
-		file = "bundle-list"
+	var fileToServe string
+	if filename == "" {
+		if path[len(path)-1] == '/' {
+			// Trailing slash, so the bundle URIs should be relative to the
+			// request's URL as if it were a directory
+			fileToServe = filepath.Join(repository.WebDir, bundles.BundleListFilename)
+		} else {
+			// No trailing slash, so the bundle URIs should be relative to the
+			// request's URL as if it were a file
+			fileToServe = filepath.Join(repository.WebDir, bundles.RepoBundleListFilename)
+		}
+	} else if filename == bundles.BundleListFilename || filename == bundles.RepoBundleListFilename {
+		// If the request identifies a non-bundle "reserved" file, return 404
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Printf("Failed to open file\n")
+		return
+	} else {
+		fileToServe = filepath.Join(repository.WebDir, filename)
 	}
 
-	fileToServe := repository.WebDir + "/" + file
-	data, err := os.ReadFile(fileToServe)
+	file, err := os.OpenFile(fileToServe, os.O_RDONLY, 0)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Printf("Failed to read file\n")
+		fmt.Printf("Failed to open file\n")
 		return
 	}
 
-	fmt.Printf("Successfully serving content for %s/%s\n", route, file)
-	w.Write(data)
+	fmt.Printf("Successfully serving content for %s/%s\n", route, filename)
+	http.ServeContent(w, r, filename, time.UnixMicro(0), file)
 }
 
 func (b *bundleWebServer) StartServerAsync(ctx context.Context) {

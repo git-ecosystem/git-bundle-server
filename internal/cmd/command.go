@@ -39,13 +39,13 @@ func (c *commandExecutor) buildCmd(ctx context.Context, command string, args ...
 func (c *commandExecutor) applyOptions(ctx context.Context, cmd *exec.Cmd, settings []Setting) {
 	for _, setting := range settings {
 		switch setting.Key {
-		case stdinKey:
+		case StdinKey:
 			cmd.Stdin = setting.Value.(io.Reader)
-		case stdoutKey:
+		case StdoutKey:
 			cmd.Stdout = setting.Value.(io.Writer)
-		case stderrKey:
+		case StderrKey:
 			cmd.Stderr = setting.Value.(io.Writer)
-		case envKey:
+		case EnvKey:
 			env, ok := setting.Value.([]string)
 			if !ok {
 				panic("incorrect env setting type")
