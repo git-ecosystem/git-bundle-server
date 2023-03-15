@@ -3,4 +3,5 @@
 /bin/
 /_dist/
 /_docs/
+/_test/
 node_modules/
