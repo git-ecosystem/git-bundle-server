@@ -59,9 +59,19 @@ func NewBundle(repo *core.Repository, timestamp int64) Bundle {
 }
 
 type BundleList struct {
-	Version int
-	Mode    string
-	Bundles map[int64]Bundle
+	Version   int
+	Mode      string
+	Heuristic string
+	Bundles   map[int64]Bundle
+}
+
+func NewBundleList() *BundleList {
+	return &BundleList{
+		Version:   1,
+		Mode:      "any",
+		Heuristic: "creationToken",
+		Bundles:   make(map[int64]Bundle),
+	}
 }
 
 func (list *BundleList) addBundle(bundle Bundle) {
@@ -125,11 +135,9 @@ func (b *bundleProvider) createDistinctBundle(repo *core.Repository, list *Bundl
 }
 
 func (b *bundleProvider) CreateSingletonList(ctx context.Context, bundle Bundle) *BundleList {
-	list := BundleList{1, "all", make(map[int64]Bundle)}
-
+	list := NewBundleList()
 	list.addBundle(bundle)
-
-	return &list
+	return list
 }
 
 // Given a BundleList, write the bundle list content to the web directory.
@@ -161,8 +169,8 @@ func (b *bundleProvider) WriteBundleList(ctx context.Context, list *BundleList, 
 		defer out.Flush()
 
 		fmt.Fprintf(
-			out, "[bundle]\n\tversion = %d\n\tmode = %s\n\n",
-			list.Version, list.Mode)
+			out, "[bundle]\n\tversion = %d\n\tmode = %s\n\theuristic = %s\n\n",
+			list.Version, list.Mode, list.Heuristic)
 
 		uriBase := path.Dir(requestUri) + "/"
 		for _, token := range keys {

@@ -31,9 +31,10 @@ var writeBundleListTests = []struct {
 	{
 		"Empty bundle list",
 		&bundles.BundleList{
-			Version: 1,
-			Mode:    "all",
-			Bundles: map[int64]bundles.Bundle{},
+			Version:   1,
+			Mode:      "all",
+			Heuristic: "creationToken",
+			Bundles:   map[int64]bundles.Bundle{},
 		},
 		&core.Repository{
 			Route:   "test/repo",
@@ -44,12 +45,14 @@ var writeBundleListTests = []struct {
 			`[bundle]`,
 			`	version = 1`,
 			`	mode = all`,
+			`	heuristic = creationToken`,
 			``,
 		},
 		[]string{
 			`[bundle]`,
 			`	version = 1`,
 			`	mode = all`,
+			`	heuristic = creationToken`,
 			``,
 		},
 		false,
@@ -57,8 +60,9 @@ var writeBundleListTests = []struct {
 	{
 		"Single bundle list",
 		&bundles.BundleList{
-			Version: 1,
-			Mode:    "all",
+			Version:   1,
+			Mode:      "all",
+			Heuristic: "creationToken",
 			Bundles: map[int64]bundles.Bundle{
 				1: {
 					URI:           "/test/myrepo/bundle-1.bundle",
@@ -76,6 +80,7 @@ var writeBundleListTests = []struct {
 			`[bundle]`,
 			`	version = 1`,
 			`	mode = all`,
+			`	heuristic = creationToken`,
 			``,
 			`[bundle "1"]`,
 			`	uri = bundle-1.bundle`,
@@ -86,6 +91,7 @@ var writeBundleListTests = []struct {
 			`[bundle]`,
 			`	version = 1`,
 			`	mode = all`,
+			`	heuristic = creationToken`,
 			``,
 			`[bundle "1"]`,
 			`	uri = myrepo/bundle-1.bundle`,
@@ -97,8 +103,9 @@ var writeBundleListTests = []struct {
 	{
 		"Multi-bundle list is sorted by creationToken",
 		&bundles.BundleList{
-			Version: 1,
-			Mode:    "all",
+			Version:   1,
+			Mode:      "all",
+			Heuristic: "creationToken",
 			Bundles: map[int64]bundles.Bundle{
 				2: {
 					URI:           "/test/myrepo/bundle-2.bundle",
@@ -126,6 +133,7 @@ var writeBundleListTests = []struct {
 			`[bundle]`,
 			`	version = 1`,
 			`	mode = all`,
+			`	heuristic = creationToken`,
 			``,
 			`[bundle "1"]`,
 			`	uri = bundle-1.bundle`,
@@ -144,6 +152,7 @@ var writeBundleListTests = []struct {
 			`[bundle]`,
 			`	version = 1`,
 			`	mode = all`,
+			`	heuristic = creationToken`,
 			``,
 			`[bundle "1"]`,
 			`	uri = myrepo/bundle-1.bundle`,
