@@ -1,0 +1,41 @@
+name: End-to-end test
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run-all:
+        type: boolean
+        description: 'Include tests that are excluded by default due to slowness'
+        default: false
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install system dependencies for end-to-end tests
+        run: build/ci/install-dependencies.sh
+        shell: bash
+
+      - name: Enable perf tests
+        if: ${{ github.event.inputs.run-all }}
+        run: echo "E2E_FLAGS='--all'" >> $GITHUB_ENV
+
+      - name: Run end-to-end tests
+        env:
+          E2E_FLAGS: ${{env.E2E_FLAGS}}
+        run: make e2e-test E2E_FLAGS="$E2E_FLAGS"
