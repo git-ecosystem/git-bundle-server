@@ -168,6 +168,10 @@ func (a *argParser) Parse(ctx context.Context, args []string) {
 			// First, try single string case
 			sPtr, isStr := arg.value.(*string)
 			if isStr {
+				if a.NArg() == 0 {
+					a.Usage(ctx, "No value specified for required argument '%s'", arg.name)
+				}
+
 				*sPtr = a.Arg(0)
 				a.argOffset++
 				continue
