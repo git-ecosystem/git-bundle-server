@@ -53,15 +53,17 @@ the server.
 
 == COMMANDS
 
-*init* _url_ _route_::
+*init* _url_ [_route_]::
   Initialize a repository for which bundles should be served. The repository is
   cloned into a bare repo from _url_. A base bundle is created for the
-  repository, served from _route_, and the man:cron[8] global bundle update
-  schedule is started.
+  repository and used to initialize the bundle list. If _route_ is specified,
+  the bundle list will be served from that route; otherwise, the route is
+  derived from the _url_. Finally, the man:cron[8] global bundle update schedule
+  is started.
 +
-It is recommended that users specify an SSH (rather than HTTP) URL for the
-_url_ argument to avoid potentially error-causing authentication prompts
-while fetching during scheduled bundle updates.
+It is recommended that users specify an SSH (rather than HTTP) URL for the _url_
+argument to avoid potentially error-causing authentication prompts while
+fetching during scheduled bundle updates.
 
 *start* _route_::
   Start computing bundles for the repository identified by _route_. If the

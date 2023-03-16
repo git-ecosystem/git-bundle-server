@@ -104,7 +104,7 @@ being managed by the bundle server.
   server route to find the data for this repository. Otherwise, the route is
   inferred from `<url>` by removing the domain name. For example,
   `https://github.com/git-for-windows/git` is assigned the route
-  `/git-for-windows/git`. Run `git-bundle-server update` to initialize bundle
+  `git-for-windows/git`. Run `git-bundle-server update` to initialize bundle
   information. Configure the web server to recognize this repository at that
   route. Configure scheduler to run `git-bundle-server update-all` as
   necessary.

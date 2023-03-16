@@ -35,11 +35,19 @@ should be hosted at '<route>'.`
 }
 
 func (i *initCmd) Run(ctx context.Context, args []string) error {
-	parser := argparse.NewArgParser(i.logger, "git-bundle-server init <url> <route>")
+	parser := argparse.NewArgParser(i.logger, "git-bundle-server init <url> [<route>]")
 	url := parser.PositionalString("url", "the URL of a repository to clone", true)
-	// TODO: allow parsing <route> out of <url>
-	route := parser.PositionalString("route", "the route to host the specified repo", true)
+	route := parser.PositionalString("route", "the route to host the specified repo", false)
 	parser.Parse(ctx, args)
+
+	// Set route value, if needed
+	if *route == "" {
+		var ok bool
+		*route, ok = core.GetRouteFromUrl(*url)
+		if !ok {
+			parser.Usage(ctx, "Cannot parse route from url '%s'; please specify an explicit route.", *url)
+		}
+	}
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, i.container)
 	bundleProvider := utils.GetDependency[bundles.BundleProvider](ctx, i.container)
