@@ -61,7 +61,7 @@ func NewArgParser(logger log.TraceLogger, usageString string) *argParser {
 			fmt.Fprint(out, "\n")
 		}
 
-		// Print subcommands (if any)
+		// Print subcommands or positional args (if any)
 		if len(a.subcommands) > 0 {
 			if a.isTopLevel {
 				fmt.Fprintln(out, "Commands:")
@@ -69,6 +69,10 @@ func NewArgParser(logger log.TraceLogger, usageString string) *argParser {
 				fmt.Fprintln(out, "Subcommands:")
 			}
 			a.printSubcommands()
+			fmt.Fprint(out, "\n")
+		} else if len(a.positionalArgs) > 0 {
+			fmt.Fprintln(out, "Positional arguments:")
+			a.printPositionalArgs()
 			fmt.Fprint(out, "\n")
 		}
 	}
@@ -92,6 +96,21 @@ func (a *argParser) printSubcommands() {
 
 func (a *argParser) Subcommand(subcommand Subcommand) {
 	a.subcommands[subcommand.Name()] = subcommand
+}
+
+func (a *argParser) printPositionalArgs() {
+	out := a.FlagSet.Output()
+	for _, arg := range a.positionalArgs {
+		optionalStr := ""
+		if !arg.required {
+			optionalStr = "(optional) "
+		}
+		fmt.Fprintf(out, "  %s\n    \t%s%s\n",
+			arg.name,
+			optionalStr,
+			strings.ReplaceAll(strings.TrimSpace(arg.description), "\n", "\n    \t"),
+		)
+	}
 }
 
 func (a *argParser) PositionalStringVar(name string, description string, arg *string, required bool) {
