@@ -50,6 +50,10 @@ When('I clone from the remote repo with a bundle URI', async function (this: Bun
   this.cloneRepositoryFor(User.Me, this.bundleServer.bundleUri())
 })
 
+When('another developer clones from the remote repo without a bundle URI', async function (this: BundleServerWorld) {
+  this.cloneRepositoryFor(User.Another)
+})
+
 When('I fetch from the remote', async function (this: BundleServerWorld) {
   const clonedRepo = this.getRepo(User.Me)
   utils.assertStatus(0, clonedRepo.runGit("fetch", "origin"))
@@ -107,3 +111,14 @@ Then('my repo\'s bundles {boolean} up-to-date with {string}',
     }
   }
 )
+
+Then('I compare the clone execution times', async function (this: BundleServerWorld) {
+  const myClone = this.getRepo(User.Me)
+  const otherClone = this.getRepo(User.Another)
+
+  // Verify the clones succeeded
+  utils.assertStatus(0, myClone.cloneResult)
+  utils.assertStatus(0, otherClone.cloneResult)
+
+  console.log(`\nClone execution time for ${this.remote!.remoteUri}: ${(myClone.cloneTimeMs / 1000).toFixed(2)}s (bundle URI) vs. ${(otherClone.cloneTimeMs / 1000).toFixed(2)}s (no bundle URI)`)
+})

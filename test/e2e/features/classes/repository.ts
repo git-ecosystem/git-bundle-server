@@ -8,6 +8,7 @@ export class ClonedRepository {
   private remote: RemoteRepo | undefined
 
   cloneResult: child_process.SpawnSyncReturns<Buffer>
+  cloneTimeMs: number
 
   constructor(remote: RemoteRepo, root: string, bundleUri?: string) {
     this.initialized = false
@@ -21,7 +22,9 @@ export class ClonedRepository {
     }
     args.push(this.remote.remoteUri, this.root)
 
+    const timer = performance.now()
     this.cloneResult = child_process.spawnSync("git", args)
+    this.cloneTimeMs = performance.now() - timer
     if (!this.cloneResult.error) {
       this.initialized = true
     }
