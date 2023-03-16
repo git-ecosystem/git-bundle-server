@@ -31,6 +31,13 @@ export class BundleServer {
     return child_process.spawnSync(this.bundleServerCmd, ["init", remote.remoteUri, this.route])
   }
 
+  update(): child_process.SpawnSyncReturns<Buffer> {
+    if (!this.route) {
+      throw new Error("Tried to update server before running 'init'")
+    }
+    return child_process.spawnSync(this.bundleServerCmd, ["update", this.route])
+  }
+
   bundleUri(): string {
     if (!this.webServerProcess) {
       throw new Error("Tried to get bundle URI before starting the web server")

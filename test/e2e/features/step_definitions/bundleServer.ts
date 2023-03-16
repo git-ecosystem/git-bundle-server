@@ -12,3 +12,7 @@ Given('the bundle server has been initialized with the remote repo', async funct
   }
   utils.assertStatus(0, this.bundleServer.init(this.remote))
 })
+
+Given('the bundle server was updated for the remote repo', async function (this: BundleServerWorld) {
+  utils.assertStatus(0, this.bundleServer.update())
+})

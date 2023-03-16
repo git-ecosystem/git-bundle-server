@@ -27,6 +27,13 @@ export class ClonedRepository {
     }
   }
 
+  runShell(command: string, ...args: string[]): child_process.SpawnSyncReturns<Buffer> {
+    if (!this.initialized) {
+      throw new Error("Repository is not initialized")
+    }
+    return child_process.spawnSync(command, args, { shell: true, cwd: this.root })
+  }
+
   runGit(...args: string[]): child_process.SpawnSyncReturns<Buffer> {
     if (!this.initialized) {
       throw new Error("Repository is not initialized")
