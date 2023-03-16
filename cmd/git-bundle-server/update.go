@@ -36,7 +36,7 @@ bundles, and update the bundle list.`
 
 func (u *updateCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser(u.logger, "git-bundle-server update <route>")
-	route := parser.PositionalString("route", "the route to update")
+	route := parser.PositionalString("route", "the route to update", true)
 	parser.Parse(ctx, args)
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, u.container)

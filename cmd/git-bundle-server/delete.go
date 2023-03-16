@@ -34,7 +34,7 @@ data.`
 
 func (d *deleteCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser(d.logger, "git-bundle-server delete <route>")
-	route := parser.PositionalString("route", "the route to delete")
+	route := parser.PositionalString("route", "the route to delete", true)
 	parser.Parse(ctx, args)
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, d.container)

@@ -36,9 +36,9 @@ should be hosted at '<route>'.`
 
 func (i *initCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser(i.logger, "git-bundle-server init <url> <route>")
-	url := parser.PositionalString("url", "the URL of a repository to clone")
+	url := parser.PositionalString("url", "the URL of a repository to clone", true)
 	// TODO: allow parsing <route> out of <url>
-	route := parser.PositionalString("route", "the route to host the specified repo")
+	route := parser.PositionalString("route", "the route to host the specified repo", true)
 	parser.Parse(ctx, args)
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, i.container)
