@@ -18,6 +18,10 @@ module.exports = {
     ...common,
     tags: 'not @slow',
   },
+  offline: {
+    ...common,
+    tags: 'not @online',
+  },
   all: {
     ...common
   }

@@ -3,6 +3,7 @@ Feature: Bundle server performance
   Background: The bundle web server is running
     Given the bundle web server was started at port 8080
 
+  @online
   Scenario Outline: Comparing clone performance
     Given a remote repository '<repo>'
     Given the bundle server has been initialized with the remote repo
