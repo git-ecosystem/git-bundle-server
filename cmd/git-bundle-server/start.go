@@ -34,7 +34,7 @@ specified '<route>'.`
 
 func (s *startCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser(s.logger, "git-bundle-server start <route>")
-	route := parser.PositionalString("route", "the route for which bundles should be generated")
+	route := parser.PositionalString("route", "the route for which bundles should be generated", true)
 	parser.Parse(ctx, args)
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, s.container)

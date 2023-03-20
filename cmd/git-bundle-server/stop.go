@@ -33,7 +33,7 @@ specified '<route>'.`
 
 func (s *stopCmd) Run(ctx context.Context, args []string) error {
 	parser := argparse.NewArgParser(s.logger, "git-bundle-server stop <route>")
-	route := parser.PositionalString("route", "the route for which bundles should stop being generated")
+	route := parser.PositionalString("route", "the route for which bundles should stop being generated", true)
 	parser.Parse(ctx, args)
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, s.container)

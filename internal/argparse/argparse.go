@@ -15,6 +15,7 @@ const usageExitCode int = 2
 type positionalArg struct {
 	name        string
 	description string
+	required    bool
 	value       interface{}
 }
 
@@ -60,7 +61,7 @@ func NewArgParser(logger log.TraceLogger, usageString string) *argParser {
 			fmt.Fprint(out, "\n")
 		}
 
-		// Print subcommands (if any)
+		// Print subcommands or positional args (if any)
 		if len(a.subcommands) > 0 {
 			if a.isTopLevel {
 				fmt.Fprintln(out, "Commands:")
@@ -68,6 +69,10 @@ func NewArgParser(logger log.TraceLogger, usageString string) *argParser {
 				fmt.Fprintln(out, "Subcommands:")
 			}
 			a.printSubcommands()
+			fmt.Fprint(out, "\n")
+		} else if len(a.positionalArgs) > 0 {
+			fmt.Fprintln(out, "Positional arguments:")
+			a.printPositionalArgs()
 			fmt.Fprint(out, "\n")
 		}
 	}
@@ -93,31 +98,48 @@ func (a *argParser) Subcommand(subcommand Subcommand) {
 	a.subcommands[subcommand.Name()] = subcommand
 }
 
-func (a *argParser) PositionalStringVar(name string, description string, arg *string) {
+func (a *argParser) printPositionalArgs() {
+	out := a.FlagSet.Output()
+	for _, arg := range a.positionalArgs {
+		optionalStr := ""
+		if !arg.required {
+			optionalStr = "(optional) "
+		}
+		fmt.Fprintf(out, "  %s\n    \t%s%s\n",
+			arg.name,
+			optionalStr,
+			strings.ReplaceAll(strings.TrimSpace(arg.description), "\n", "\n    \t"),
+		)
+	}
+}
+
+func (a *argParser) PositionalStringVar(name string, description string, arg *string, required bool) {
 	a.positionalArgs = append(a.positionalArgs, &positionalArg{
 		name:        name,
 		description: description,
+		required:    required,
 		value:       arg,
 	})
 }
 
-func (a *argParser) PositionalString(name string, description string) *string {
+func (a *argParser) PositionalString(name string, description string, required bool) *string {
 	arg := new(string)
-	a.PositionalStringVar(name, description, arg)
+	a.PositionalStringVar(name, description, arg, required)
 	return arg
 }
 
-func (a *argParser) PositionalListVar(name string, description string, arg *[]string) {
+func (a *argParser) PositionalListVar(name string, description string, arg *[]string, required bool) {
 	a.positionalArgs = append(a.positionalArgs, &positionalArg{
 		name:        name,
 		description: description,
+		required:    required,
 		value:       arg,
 	})
 }
 
-func (a *argParser) PositionalList(name string, description string) *[]string {
+func (a *argParser) PositionalList(name string, description string, required bool) *[]string {
 	arg := &[]string{}
-	a.PositionalListVar(name, description, arg)
+	a.PositionalListVar(name, description, arg, required)
 	return arg
 }
 
@@ -131,7 +153,14 @@ func (a *argParser) Parse(ctx context.Context, args []string) {
 	if len(a.subcommands) > 0 && len(a.positionalArgs) > 0 {
 		panic("cannot mix subcommands and positional args")
 	}
+
+	mustBeOptional := false
 	for i, positionalArg := range a.positionalArgs {
+		mustBeOptional = mustBeOptional || !positionalArg.required
+		if mustBeOptional && positionalArg.required {
+			panic("cannot have required args after optional args")
+		}
+
 		if i < len(a.positionalArgs)-1 {
 			// Only the last positional arg can be a list
 			_, isList := positionalArg.value.(*[]string)
@@ -165,6 +194,14 @@ func (a *argParser) Parse(ctx context.Context, args []string) {
 	} else {
 		// Handle positional args
 		for _, arg := range a.positionalArgs {
+			if a.NArg() == 0 {
+				if arg.required {
+					a.Usage(ctx, "No value specified for required argument '%s'", arg.name)
+				} else {
+					break
+				}
+			}
+
 			// First, try single string case
 			sPtr, isStr := arg.value.(*string)
 			if isStr {
