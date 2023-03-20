@@ -170,11 +170,45 @@ $ go build -o bin/ ./...
 
 ### Testing and Linting
 
-To run the project's unit tests, navigate to the repository root directory and
-run `go test -v ./...`.
+Unless otherwise specified, run commands from the repository root.
 
-To run the project's linter, navigate to the repository root directory and run
-`go vet ./...`.
+#### Unit tests
+
+```
+go test -v ./...
+```
+
+#### Linter
+
+```
+go vet ./...
+```
+
+#### End-to-end tests
+
+In order to run these tests, you need to have a recent version of
+[Node.js](https://nodejs.org) (current LTS version is a pretty safe bet) and NPM
+installed.
+
+For the standard set of tests (i.e., excluding exceptionally slow tests), run:
+
+```
+make e2e-test
+```
+
+To configure the test execution and filtering, set the `E2E_FLAGS` build
+variable. The available options are:
+
+* `--offline`: run all tests except those that require internet access.
+* `--all`: run all tests, including slow performance tests.
+
+The above modes are mutually exclusive; if multiple are specified, only the last
+will be used. For example, `E2E_FLAGS="--offline --all"` is equivalent to
+`E2E_FLAGS="--all"`.
+
+:warning: The performance tests that are excluded by default clone very large
+repos from the internet and can take anywhere from ~30 minutes to multiple hours
+to run, depending on internet connectivity and other system resources.
 
 ## License
 

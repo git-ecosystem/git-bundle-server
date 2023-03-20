@@ -7,14 +7,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.19.0'
-
       - uses: actions/checkout@v3
         with:
           path: src/git-bundle-server
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'src/git-bundle-server/go.mod'
 
       # TODO: when the '-C' option is available, remove the 'cd ...'
       # See https://github.com/golang/go/issues/50332 for more details
