@@ -1,6 +1,8 @@
 import { randomBytes } from 'crypto'
 import * as child_process from 'child_process'
 import { RemoteRepo } from './remote'
+import * as fs from 'fs'
+import * as utils from '../support/utils'
 
 export class BundleServer {
   private bundleServerCmd: string
@@ -11,7 +13,8 @@ export class BundleServer {
   private bundleUriBase: string | undefined
 
   // Remote repo info (for now, only support one per test)
-  private route: string | undefined
+  route: string | undefined
+  initialBundleCount: number | undefined
 
   constructor(bundleServerCmd: string, bundleWebServerCmd: string) {
     this.bundleServerCmd = bundleServerCmd
@@ -26,9 +29,21 @@ export class BundleServer {
     this.bundleUriBase = `http://localhost:${port}/`
   }
 
-  init(remote: RemoteRepo): child_process.SpawnSyncReturns<Buffer> {
-    this.route = `e2e/${randomBytes(8).toString('hex')}`
-    return child_process.spawnSync(this.bundleServerCmd, ["init", remote.remoteUri, this.route])
+  init(remote: RemoteRepo, routePrefix: string, route: string = ""): child_process.SpawnSyncReturns<Buffer> {
+    if (route === "") {
+      route = `${routePrefix}/${randomBytes(8).toString('hex')}`
+    }
+    this.route = route
+
+    const repoPath = utils.repoRoot(route)
+    if (fs.existsSync(repoPath)) {
+      throw new Error("Bundle server repository already exists")
+    }
+
+    const result = child_process.spawnSync(this.bundleServerCmd, ["init", remote.remoteUri, this.route])
+    this.initialBundleCount = this.getBundleCount()
+
+    return result
   }
 
   update(): child_process.SpawnSyncReturns<Buffer> {
@@ -47,6 +62,23 @@ export class BundleServer {
     }
 
     return this.bundleUriBase + this.route
+  }
+
+  getBundleCount(): number {
+    if (!this.route) {
+      throw new Error("Route is not defined")
+    }
+
+    var matches: string[] = [];
+    const files = fs.readdirSync(`${utils.wwwPath()}/${this.route}`);
+
+    for (const file of files) {
+      if (file.endsWith('.bundle')) {
+        matches.push(file);
+      }
+    }
+
+    return matches.length;
   }
 
   cleanup(): void {

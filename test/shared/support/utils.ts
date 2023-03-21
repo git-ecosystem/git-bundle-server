@@ -2,6 +2,8 @@ import * as assert from 'assert'
 import * as child_process from 'child_process'
 import * as path from 'path'
 
+const bundleRoot = `${process.env.HOME}/git-bundle-server`
+
 export function absPath(pathParam: string): string {
   // Convert a given path (either relative to the top-level project directory or
   // absolute) to an absolute path
@@ -23,4 +25,20 @@ export function assertStatus(expectedStatusCode: number, result: child_process.S
     }
     assert.strictEqual(result.status, expectedStatusCode,
       `${message ?? "Invalid status code"}:\n\tstdout: ${result.stdout.toString()}\n\tstderr: ${result.stderr.toString()}`)
+}
+
+export function wwwPath(): string {
+  return path.resolve(bundleRoot, "www")
+}
+
+export function repoRoot(pathParam: string): string {
+  if (!path.isAbsolute(pathParam)) {
+    return path.resolve(bundleRoot, "git", pathParam)
+  } else {
+    return pathParam
+  }
+}
+
+export function routesPath(): string {
+  return path.resolve(bundleRoot, "routes")
 }
