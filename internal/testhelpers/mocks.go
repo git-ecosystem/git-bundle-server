@@ -229,3 +229,8 @@ func (m *MockGitHelper) UpdateBareRepo(ctx context.Context, repoDir string) erro
 	fnArgs := m.Called(ctx, repoDir)
 	return fnArgs.Error(0)
 }
+
+func (m *MockGitHelper) GetRemoteUrl(ctx context.Context, repoDir string) (string, error) {
+	fnArgs := m.Called(ctx, repoDir)
+	return fnArgs.String(0), fnArgs.Error(1)
+}
