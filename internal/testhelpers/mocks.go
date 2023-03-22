@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os/exec"
 	"os/user"
 	"runtime"
@@ -12,6 +13,34 @@ import (
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/stretchr/testify/mock"
 )
+
+type TestReadDirEntry struct {
+	PathVal  string
+	NameVal  string
+	IsDirVal bool
+	TypeVal  fs.FileMode
+	InfoVal  fs.FileInfo
+}
+
+func (e TestReadDirEntry) Path() string {
+	return e.PathVal
+}
+
+func (e TestReadDirEntry) Name() string {
+	return e.NameVal
+}
+
+func (e TestReadDirEntry) IsDir() bool {
+	return e.IsDirVal
+}
+
+func (e TestReadDirEntry) Type() fs.FileMode {
+	return e.TypeVal
+}
+
+func (e TestReadDirEntry) Info() (fs.FileInfo, error) {
+	return e.InfoVal, nil
+}
 
 func methodIsMocked(m *mock.Mock) bool {
 	// Get the calling method name

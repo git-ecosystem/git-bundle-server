@@ -13,8 +13,10 @@ import (
 	"time"
 
 	"github.com/github/git-bundle-server/internal/bundles"
+	"github.com/github/git-bundle-server/internal/cmd"
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
+	"github.com/github/git-bundle-server/internal/git"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
@@ -84,7 +86,9 @@ func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 
 	userProvider := common.NewUserProvider()
 	fileSystem := common.NewFileSystem()
-	repoProvider := core.NewRepositoryProvider(b.logger, userProvider, fileSystem)
+	commandExecutor := cmd.NewCommandExecutor(b.logger)
+	gitHelper := git.NewGitHelper(b.logger, commandExecutor)
+	repoProvider := core.NewRepositoryProvider(b.logger, userProvider, fileSystem, gitHelper)
 
 	repos, err := repoProvider.GetRepositories(ctx)
 	if err != nil {

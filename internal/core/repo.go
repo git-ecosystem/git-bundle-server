@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/github/git-bundle-server/internal/common"
+	"github.com/github/git-bundle-server/internal/git"
 	"github.com/github/git-bundle-server/internal/log"
 )
 
@@ -19,6 +21,7 @@ type Repository struct {
 type RepositoryProvider interface {
 	CreateRepository(ctx context.Context, route string) (*Repository, error)
 	GetRepositories(ctx context.Context) (map[string]Repository, error)
+	ReadRepositoryStorage(ctx context.Context) (map[string]Repository, error)
 	RemoveRoute(ctx context.Context, route string) error
 }
 
@@ -26,16 +29,19 @@ type repoProvider struct {
 	logger     log.TraceLogger
 	user       common.UserProvider
 	fileSystem common.FileSystem
+	gitHelper  git.GitHelper
 }
 
 func NewRepositoryProvider(logger log.TraceLogger,
 	u common.UserProvider,
 	fs common.FileSystem,
+	g git.GitHelper,
 ) RepositoryProvider {
 	return &repoProvider{
 		logger:     logger,
 		user:       u,
 		fileSystem: fs,
+		gitHelper:  g,
 	}
 }
 
@@ -145,6 +151,46 @@ func (r *repoProvider) GetRepositories(ctx context.Context) (map[string]Reposito
 			WebDir:  filepath.Join(webroot(user), route),
 		}
 		repos[route] = repo
+	}
+
+	return repos, nil
+}
+
+func (r *repoProvider) ReadRepositoryStorage(ctx context.Context) (map[string]Repository, error) {
+	ctx, exitRegion := r.logger.Region(ctx, "repo", "get_on_disk_repos")
+	defer exitRegion()
+
+	user, err := r.user.CurrentUser()
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := r.fileSystem.ReadDirRecursive(reporoot(user), 2, true)
+	if err != nil {
+		return nil, err
+	}
+
+	repos := make(map[string]Repository)
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		_, err = r.gitHelper.GetRemoteUrl(ctx, entry.Path())
+		if err != nil {
+			continue
+		}
+
+		pathElems := strings.Split(entry.Path(), string(os.PathSeparator))
+		if len(pathElems) < 2 {
+			return nil, r.logger.Errorf(ctx, "invalid repo path '%s'", entry.Path())
+		}
+		route := strings.Join(pathElems[len(pathElems)-2:], "/")
+		repos[route] = Repository{
+			Route:   route,
+			RepoDir: filepath.Join(reporoot(user), route),
+			WebDir:  filepath.Join(webroot(user), route),
+		}
 	}
 
 	return repos, nil

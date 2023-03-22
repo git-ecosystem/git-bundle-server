@@ -28,6 +28,7 @@ func BuildGitBundleServerContainer(logger log.TraceLogger) *DependencyContainer 
 			logger,
 			GetDependency[common.UserProvider](ctx, container),
 			GetDependency[common.FileSystem](ctx, container),
+			GetDependency[git.GitHelper](ctx, container),
 		)
 	})
 	registerDependency(container, func(ctx context.Context) bundles.BundleProvider {

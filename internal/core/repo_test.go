@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 	. "github.com/github/git-bundle-server/internal/testhelpers"
+	"github.com/github/git-bundle-server/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -94,7 +96,7 @@ func TestRepos_GetRepositories(t *testing.T) {
 	}
 	testUserProvider := &MockUserProvider{}
 	testUserProvider.On("CurrentUser").Return(testUser, nil)
-	repoProvider := core.NewRepositoryProvider(testLogger, testUserProvider, testFileSystem)
+	repoProvider := core.NewRepositoryProvider(testLogger, testUserProvider, testFileSystem, nil)
 
 	for _, tt := range getRepositoriesTests {
 		t.Run(tt.title, func(t *testing.T) {
@@ -120,6 +122,137 @@ func TestRepos_GetRepositories(t *testing.T) {
 					assert.Equal(t, filepath.Clean(repo.WebDir), a.WebDir)
 				}
 			}
+		})
+	}
+}
+
+var readRepositoryStorageTests = []struct {
+	title string
+
+	foundPaths            Pair[[]Pair[string, bool], error] // list of (path, isDir), error
+	foundRouteIsValidRepo map[string]bool                   // map of route -> whether GetRemoteUrl succeeds
+
+	expectedRoutes []string
+	expectedErr    bool
+}{
+	{
+		"no dirs found",
+		NewPair([]Pair[string, bool]{}, error(nil)),
+		map[string]bool{},
+		[]string{},
+		false,
+	},
+	{
+		"multiple valid repos found",
+		NewPair(
+			[]Pair[string, bool]{
+				NewPair("my/repo", true),
+				NewPair("another/route", true),
+			},
+			error(nil),
+		),
+		map[string]bool{
+			"my/repo":       true,
+			"another/route": true,
+		},
+		[]string{"my/repo", "another/route"},
+		false,
+	},
+	{
+		"ignores non-directories",
+		NewPair(
+			[]Pair[string, bool]{
+				NewPair("this-is-a/file", false),
+				NewPair("my/repo", true),
+			},
+			error(nil),
+		),
+		map[string]bool{
+			"my/repo": true,
+		},
+		[]string{"my/repo"},
+		false,
+	},
+	{
+		"ignores invalid Git repos",
+		NewPair(
+			[]Pair[string, bool]{
+				NewPair("is/a-repo", true),
+				NewPair("not/a-repo", true),
+			},
+			error(nil),
+		),
+		map[string]bool{
+			"is/a-repo":  true,
+			"not/a-repo": false,
+		},
+		[]string{"is/a-repo"},
+		false,
+	},
+}
+
+func TestRepos_ReadRepositoryStorage(t *testing.T) {
+	testLogger := &MockTraceLogger{}
+	testFileSystem := &MockFileSystem{}
+	testGitHelper := &MockGitHelper{}
+	testUser := &user.User{
+		Uid:      "123",
+		Username: "testuser",
+		HomeDir:  "/my/test/dir",
+	}
+	testUserProvider := &MockUserProvider{}
+	testUserProvider.On("CurrentUser").Return(testUser, nil)
+	repoProvider := core.NewRepositoryProvider(testLogger, testUserProvider, testFileSystem, testGitHelper)
+
+	for _, tt := range readRepositoryStorageTests {
+		t.Run(tt.title, func(t *testing.T) {
+			testFileSystem.On("ReadDirRecursive",
+				filepath.Clean("/my/test/dir/git-bundle-server/git"),
+				2,
+				true,
+			).Return(utils.Map(tt.foundPaths.First, func(path Pair[string, bool]) common.ReadDirEntry {
+				return TestReadDirEntry{
+					PathVal:  filepath.Join("/my/test/dir/git-bundle-server/git", path.First),
+					IsDirVal: path.Second,
+				}
+			}), tt.foundPaths.Second).Once()
+
+			for route, isValid := range tt.foundRouteIsValidRepo {
+				call := testGitHelper.On("GetRemoteUrl",
+					mock.Anything,
+					filepath.Join("/my/test/dir/git-bundle-server/git", route),
+				).Once()
+
+				if isValid {
+					call.Return("https://localhost/example-remote", nil)
+				} else {
+					call.Return("", errors.New("could not get remote URL"))
+				}
+			}
+
+			actual, err := repoProvider.ReadRepositoryStorage(context.Background())
+			mock.AssertExpectationsForObjects(t, testUserProvider, testFileSystem, testGitHelper)
+
+			if tt.expectedErr {
+				assert.NotNil(t, err, "Expected error")
+				assert.Nil(t, actual, "Expected nil map")
+			} else {
+				assert.Nil(t, err, "Expected success")
+				assert.NotNil(t, actual, "Expected non-nil map")
+				assert.NotNil(t, actual, "Expected non-nil list")
+				assert.Equal(t, len(tt.expectedRoutes), len(actual), "Length mismatch")
+				for _, route := range tt.expectedRoutes {
+					a := actual[route]
+
+					assert.Equal(t, route, a.Route)
+					assert.Equal(t, filepath.Join("/my/test/dir/git-bundle-server/git", route), a.RepoDir)
+					assert.Equal(t, filepath.Join("/my/test/dir/git-bundle-server/www", route), a.WebDir)
+				}
+			}
+
+			// Reset mocks
+			testFileSystem.Mock = mock.Mock{}
+			testGitHelper.Mock = mock.Mock{}
 		})
 	}
 }
