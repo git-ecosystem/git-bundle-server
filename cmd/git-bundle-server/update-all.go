@@ -56,6 +56,7 @@ func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
 
 	for route := range repos {
 		subargs[1] = route
+		fmt.Printf("*** Updating %s ***\n", route)
 		exitCode, err := commandExecutor.RunStdout(ctx, exe, subargs...)
 		if err != nil {
 			return u.logger.Error(ctx, err)
