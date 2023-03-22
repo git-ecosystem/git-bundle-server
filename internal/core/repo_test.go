@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/github/git-bundle-server/internal/common"
@@ -253,6 +254,86 @@ func TestRepos_ReadRepositoryStorage(t *testing.T) {
 			// Reset mocks
 			testFileSystem.Mock = mock.Mock{}
 			testGitHelper.Mock = mock.Mock{}
+		})
+	}
+}
+
+var writeAllRoutesTests = []struct {
+	title        string
+	repos        map[string]core.Repository
+	expectedFile []string
+}{
+	{
+		"empty repo map",
+		map[string]core.Repository{},
+		[]string{""},
+	},
+	{
+		"single repo",
+		map[string]core.Repository{
+			"test/route": {Route: "test/route"},
+		},
+		[]string{
+			"test/route",
+		},
+	},
+	{
+		"multiple repos",
+		map[string]core.Repository{
+			"test/route":   {Route: "test/route"},
+			"another/repo": {Route: "another/repo"},
+		},
+		[]string{
+			"test/route",
+			"another/repo",
+		},
+	},
+}
+
+func TestRepos_WriteAllRoutes(t *testing.T) {
+	testLogger := &MockTraceLogger{}
+	testFileSystem := &MockFileSystem{}
+	testUser := &user.User{
+		Uid:      "123",
+		Username: "testuser",
+		HomeDir:  "/my/test/dir",
+	}
+	testUserProvider := &MockUserProvider{}
+	testUserProvider.On("CurrentUser").Return(testUser, nil)
+	repoProvider := core.NewRepositoryProvider(testLogger, testUserProvider, testFileSystem, nil)
+
+	for _, tt := range writeAllRoutesTests {
+		t.Run(tt.title, func(t *testing.T) {
+			var actualFilename string
+			var actualFileBytes []byte
+
+			testFileSystem.On("WriteFile",
+				mock.MatchedBy(func(filename string) bool {
+					actualFilename = filename
+					return true
+				}),
+				mock.MatchedBy(func(fileBytes any) bool {
+					// Save off value and always match
+					actualFileBytes = fileBytes.([]byte)
+					return true
+				}),
+			).Return(nil).Once()
+
+			err := repoProvider.WriteAllRoutes(context.Background(), tt.repos)
+			assert.Nil(t, err)
+			mock.AssertExpectationsForObjects(t, testUserProvider, testFileSystem)
+
+			// Check filename
+			expectedFilename := filepath.Clean("/my/test/dir/git-bundle-server/routes")
+			assert.Equal(t, expectedFilename, actualFilename)
+
+			// Check routes file contents
+			fileLines := strings.Split(strings.TrimSpace(string(actualFileBytes)), "\n")
+
+			assert.ElementsMatch(t, tt.expectedFile, fileLines)
+
+			// Reset mocks
+			testFileSystem.Mock = mock.Mock{}
 		})
 	}
 }

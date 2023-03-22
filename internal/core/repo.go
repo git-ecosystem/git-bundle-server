@@ -21,6 +21,7 @@ type Repository struct {
 type RepositoryProvider interface {
 	CreateRepository(ctx context.Context, route string) (*Repository, error)
 	GetRepositories(ctx context.Context) (map[string]Repository, error)
+	WriteAllRoutes(ctx context.Context, repos map[string]Repository) error
 	ReadRepositoryStorage(ctx context.Context) (map[string]Repository, error)
 	RemoveRoute(ctx context.Context, route string) error
 }
@@ -80,7 +81,7 @@ func (r *repoProvider) CreateRepository(ctx context.Context, route string) (*Rep
 
 	repos[route] = repo
 
-	err = r.writeRouteFile(repos)
+	err = r.WriteAllRoutes(ctx, repos)
 	if err != nil {
 		return nil, fmt.Errorf("warning: failed to write route file")
 	}
@@ -104,10 +105,10 @@ func (r *repoProvider) RemoveRoute(ctx context.Context, route string) error {
 
 	delete(repos, route)
 
-	return r.writeRouteFile(repos)
+	return r.WriteAllRoutes(ctx, repos)
 }
 
-func (r *repoProvider) writeRouteFile(repos map[string]Repository) error {
+func (r *repoProvider) WriteAllRoutes(ctx context.Context, repos map[string]Repository) error {
 	user, err := r.user.CurrentUser()
 	if err != nil {
 		return err
@@ -115,12 +116,11 @@ func (r *repoProvider) writeRouteFile(repos map[string]Repository) error {
 	routefile := filepath.Join(bundleroot(user), "routes")
 
 	contents := ""
-
 	for routes := range repos {
 		contents = contents + routes + "\n"
 	}
 
-	return os.WriteFile(routefile, []byte(contents), 0o600)
+	return r.fileSystem.WriteFile(routefile, []byte(contents))
 }
 
 func (r *repoProvider) GetRepositories(ctx context.Context) (map[string]Repository, error) {
