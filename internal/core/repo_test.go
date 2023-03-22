@@ -97,12 +97,12 @@ func TestRepos_GetRepositories(t *testing.T) {
 
 	for _, tt := range getRepositoriesTests {
 		t.Run(tt.title, func(t *testing.T) {
-			testFileSystem.On("UserHomeDir").Return("/my/test/dir", nil)
 			testFileSystem.On("ReadFileLines",
 				mock.AnythingOfType("string"),
 			).Return(tt.readFileLines.First, tt.readFileLines.Second).Once()
 
 			actual, err := repoProvider.GetRepositories(context.Background())
+			mock.AssertExpectationsForObjects(t, testUserProvider, testFileSystem)
 
 			if tt.expectedErr {
 				assert.NotNil(t, err, "Expected error")

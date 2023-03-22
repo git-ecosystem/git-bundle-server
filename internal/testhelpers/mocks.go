@@ -196,11 +196,6 @@ func (m *MockFileSystem) ReadFileLines(filename string) ([]string, error) {
 	return fnArgs.Get(0).([]string), fnArgs.Error(1)
 }
 
-func (m *MockFileSystem) UserHomeDir() (string, error) {
-	fnArgs := m.Called()
-	return fnArgs.String(0), fnArgs.Error(1)
-}
-
 type MockGitHelper struct {
 	mock.Mock
 }
