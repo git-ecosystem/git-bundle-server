@@ -196,6 +196,11 @@ func (m *MockFileSystem) ReadFileLines(filename string) ([]string, error) {
 	return fnArgs.Get(0).([]string), fnArgs.Error(1)
 }
 
+func (m *MockFileSystem) ReadDirRecursive(path string, depth int, strictDepth bool) ([]common.ReadDirEntry, error) {
+	fnArgs := m.Called(path, depth, strictDepth)
+	return fnArgs.Get(0).([]common.ReadDirEntry), fnArgs.Error(1)
+}
+
 type MockGitHelper struct {
 	mock.Mock
 }
