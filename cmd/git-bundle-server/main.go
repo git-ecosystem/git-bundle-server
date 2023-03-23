@@ -19,6 +19,7 @@ func all(logger log.TraceLogger) []argparse.Subcommand {
 		NewStopCommand(logger, container),
 		NewUpdateCommand(logger, container),
 		NewUpdateAllCommand(logger, container),
+		NewListCommand(logger, container),
 		NewWebServerCommand(logger, container),
 	}
 }

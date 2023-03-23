@@ -84,6 +84,14 @@ fetching during scheduled bundle updates.
 *delete* _route_::
   Remove a repository configuration and delete its data on disk.
 
+*list* [*--name-only*]::
+  List the routes registered to the bundle server. Each line in the output
+  represents a unique route and includes (in order) the route name and the Git
+  remote URL associated with that route.
+
+  *--name-only*:::
+    Print only the route name on each line.
+
 *web-server* *start* [*-f*|*--force*] [_server-options_]::
   Start a background process web server hosting bundle metadata and content. The
   web server daemon runs under the calling user's domain, and will continue
