@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"os"
-	"os/exec"
+	"fmt"
 
 	"github.com/github/git-bundle-server/cmd/utils"
 	"github.com/github/git-bundle-server/internal/argparse"
+	"github.com/github/git-bundle-server/internal/cmd"
+	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/core"
 	"github.com/github/git-bundle-server/internal/log"
 )
@@ -37,13 +38,15 @@ func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
 	parser.Parse(ctx, args)
 
 	repoProvider := utils.GetDependency[core.RepositoryProvider](ctx, u.container)
+	fileSystem := utils.GetDependency[common.FileSystem](ctx, u.container)
+	commandExecutor := utils.GetDependency[cmd.CommandExecutor](ctx, u.container)
 
 	repos, err := repoProvider.GetRepositories(ctx)
 	if err != nil {
 		return u.logger.Error(ctx, err)
 	}
 
-	exe, err := os.Executable()
+	exe, err := fileSystem.GetLocalExecutable("git-bundle-server")
 	if err != nil {
 		return u.logger.Errorf(ctx, "failed to get path to execuable: %w", err)
 	}
@@ -53,19 +56,14 @@ func (u *updateAllCmd) Run(ctx context.Context, args []string) error {
 
 	for route := range repos {
 		subargs[1] = route
-		cmd := exec.Command(exe, subargs...)
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-
-		err := cmd.Start()
+		fmt.Printf("*** Updating %s ***\n", route)
+		exitCode, err := commandExecutor.RunStdout(ctx, exe, subargs...)
 		if err != nil {
-			return u.logger.Errorf(ctx, "git command failed to start: %w", err)
+			return u.logger.Error(ctx, err)
+		} else if exitCode != 0 {
+			return u.logger.Errorf(ctx, "git-bundle-server update exited with status %d", exitCode)
 		}
-
-		err = cmd.Wait()
-		if err != nil {
-			return u.logger.Errorf(ctx, "git command returned a failure: %w", err)
-		}
+		fmt.Print("\n")
 	}
 
 	return nil
