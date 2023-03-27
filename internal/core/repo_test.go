@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os/user"
+	"path/filepath"
 	"testing"
 
 	"github.com/github/git-bundle-server/internal/core"
@@ -115,8 +116,8 @@ func TestRepos_GetRepositories(t *testing.T) {
 					a := actual[repo.Route]
 
 					assert.Equal(t, repo.Route, a.Route)
-					assert.Equal(t, repo.RepoDir, a.RepoDir)
-					assert.Equal(t, repo.WebDir, a.WebDir)
+					assert.Equal(t, filepath.Clean(repo.RepoDir), a.RepoDir)
+					assert.Equal(t, filepath.Clean(repo.WebDir), a.WebDir)
 				}
 			}
 		})

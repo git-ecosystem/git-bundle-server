@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/github/git-bundle-server/internal/log"
@@ -57,8 +58,8 @@ func (r *repoProvider) CreateRepository(ctx context.Context, route string) (*Rep
 		return &repo, nil
 	}
 
-	repodir := reporoot(user) + route
-	web := webroot(user) + route
+	repodir := filepath.Join(reporoot(user), route)
+	web := filepath.Join(webroot(user), route)
 
 	mkdirErr := os.MkdirAll(web, os.ModePerm)
 	if mkdirErr != nil {
@@ -105,8 +106,7 @@ func (r *repoProvider) writeRouteFile(repos map[string]Repository) error {
 	if err != nil {
 		return err
 	}
-	dir := bundleroot(user)
-	routefile := dir + "/routes"
+	routefile := filepath.Join(bundleroot(user), "routes")
 
 	contents := ""
 
@@ -128,8 +128,7 @@ func (r *repoProvider) GetRepositories(ctx context.Context) (map[string]Reposito
 
 	repos := make(map[string]Repository)
 
-	dir := bundleroot(user)
-	routefile := dir + "/routes"
+	routefile := filepath.Join(bundleroot(user), "routes")
 
 	lines, err := r.fileSystem.ReadFileLines(routefile)
 	if err != nil {
@@ -142,8 +141,8 @@ func (r *repoProvider) GetRepositories(ctx context.Context) (map[string]Reposito
 
 		repo := Repository{
 			Route:   route,
-			RepoDir: reporoot(user) + route,
-			WebDir:  webroot(user) + route,
+			RepoDir: filepath.Join(reporoot(user), route),
+			WebDir:  filepath.Join(webroot(user), route),
 		}
 		repos[route] = repo
 	}
