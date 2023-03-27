@@ -224,3 +224,8 @@ func (m *MockGitHelper) CloneBareRepo(ctx context.Context, url string, destinati
 	fnArgs := m.Called(ctx, url, destination)
 	return fnArgs.Error(0)
 }
+
+func (m *MockGitHelper) UpdateBareRepo(ctx context.Context, repoDir string) error {
+	fnArgs := m.Called(ctx, repoDir)
+	return fnArgs.Error(0)
+}
