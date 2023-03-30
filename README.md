@@ -133,6 +133,13 @@ being managed by the bundle server.
 * `git-bundle-server delete <route>`: Remove the configuration for the given
   `<route>` and delete its repository data.
 
+* `git-bundle-server list [<options>]`: List each route and associated
+  information (e.g. Git remote URL) in the bundle server.
+
+* `git-bundle-server repair routes [<options>]`: Correct the contents of the
+  internal route registry by comparing to bundle server's internal repository
+  storage.
+
 ### Web server management
 
 Independent of the management of the individual repositories hosted by the

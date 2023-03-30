@@ -10,6 +10,8 @@ import (
 	"path"
 	"path/filepath"
 	"syscall"
+
+	"github.com/github/git-bundle-server/internal/utils"
 )
 
 const (
@@ -35,6 +37,29 @@ func (l *lockFile) Rollback() error {
 	return os.Remove(l.lockFilename)
 }
 
+type ReadDirEntry interface {
+	Path() string
+	fs.DirEntry
+}
+
+type fsEntry struct {
+	root string
+	fs.DirEntry
+}
+
+func (e *fsEntry) Path() string {
+	return filepath.Join(e.root, e.Name())
+}
+
+func mapDirEntry(root string) func(fs.DirEntry) ReadDirEntry {
+	return func(e fs.DirEntry) ReadDirEntry {
+		return &fsEntry{
+			root:     root,
+			DirEntry: e,
+		}
+	}
+}
+
 type FileSystem interface {
 	GetLocalExecutable(name string) (string, error)
 
@@ -43,6 +68,15 @@ type FileSystem interface {
 	WriteLockFileFunc(filename string, writeFunc func(io.Writer) error) (LockFile, error)
 	DeleteFile(filename string) (bool, error)
 	ReadFileLines(filename string) ([]string, error)
+
+	// ReadDirRecursive recurses into a given directory ('path') up to 'depth'
+	// levels deep. If 'strictDepth' is true, only the entries at *exactly* the
+	// given depth are returned (if any). If 'strictDepth' is false, though, the
+	// results will also include any files or empty directories for a depth <
+	// 'depth'.
+	//
+	// If 'depth' is <= 0, ReadDirRecursive returns an empty list.
+	ReadDirRecursive(path string, depth int, strictDepth bool) ([]ReadDirEntry, error)
 }
 
 type fileSystem struct{}
@@ -172,4 +206,42 @@ func (f *fileSystem) ReadFileLines(filename string) ([]string, error) {
 	}
 
 	return l, nil
+}
+
+func (f *fileSystem) ReadDirRecursive(path string, depth int, strictDepth bool) ([]ReadDirEntry, error) {
+	if depth <= 0 {
+		return []ReadDirEntry{}, nil
+	}
+
+	dirEntries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := utils.Map(dirEntries, mapDirEntry(path))
+	if depth == 1 {
+		return entries, nil
+	}
+
+	out := []ReadDirEntry{}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			if !strictDepth {
+				out = append(out, entry)
+			}
+			continue
+		}
+
+		subEntries, err := f.ReadDirRecursive(entry.Path(), depth-1, strictDepth)
+		if err != nil {
+			return nil, err
+		}
+		if !strictDepth && len(subEntries) == 0 {
+			out = append(out, entry)
+			continue
+		}
+		out = append(out, subEntries...)
+	}
+
+	return out, nil
 }

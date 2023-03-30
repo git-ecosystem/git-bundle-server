@@ -17,6 +17,7 @@ type GitHelper interface {
 	CreateIncrementalBundle(ctx context.Context, repoDir string, filename string, prereqs []string) (bool, error)
 	CloneBareRepo(ctx context.Context, url string, destination string) error
 	UpdateBareRepo(ctx context.Context, repoDir string) error
+	GetRemoteUrl(ctx context.Context, repoDir string) (string, error)
 }
 
 type gitHelper struct {
@@ -45,6 +46,25 @@ func (g *gitHelper) gitCommand(ctx context.Context, args ...string) error {
 	}
 
 	return nil
+}
+
+func (g *gitHelper) gitCommandQuiet(ctx context.Context, args ...string) (*bytes.Buffer, *bytes.Buffer, error) {
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	exitCode, err := g.cmdExec.Run(ctx, "git", args,
+		cmd.Stdout(stdout),
+		cmd.Stderr(stderr),
+		cmd.Env([]string{"LC_CTYPE=C"}),
+	)
+
+	if err != nil {
+		return nil, nil, g.logger.Error(ctx, err)
+	} else if exitCode != 0 {
+		return stdout, stderr, g.logger.Errorf(ctx, "'git' exited with status %d\n%s", exitCode, stderr.String())
+	}
+
+	return stdout, stderr, nil
 }
 
 func (g *gitHelper) gitCommandWithStdin(ctx context.Context, stdinLines []string, args ...string) error {
@@ -148,4 +168,12 @@ func (g *gitHelper) UpdateBareRepo(ctx context.Context, repoDir string) error {
 	}
 
 	return nil
+}
+
+func (g *gitHelper) GetRemoteUrl(ctx context.Context, repoDir string) (string, error) {
+	stdout, _, gitErr := g.gitCommandQuiet(ctx, "-C", repoDir, "remote", "get-url", "origin")
+	if gitErr != nil {
+		return "", g.logger.Errorf(ctx, "failed to get remote URL: %w", gitErr)
+	}
+	return strings.TrimSpace(stdout.String()), nil
 }

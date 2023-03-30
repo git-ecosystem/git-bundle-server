@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os/exec"
 	"os/user"
 	"runtime"
@@ -12,6 +13,34 @@ import (
 	"github.com/github/git-bundle-server/internal/common"
 	"github.com/stretchr/testify/mock"
 )
+
+type TestReadDirEntry struct {
+	PathVal  string
+	NameVal  string
+	IsDirVal bool
+	TypeVal  fs.FileMode
+	InfoVal  fs.FileInfo
+}
+
+func (e TestReadDirEntry) Path() string {
+	return e.PathVal
+}
+
+func (e TestReadDirEntry) Name() string {
+	return e.NameVal
+}
+
+func (e TestReadDirEntry) IsDir() bool {
+	return e.IsDirVal
+}
+
+func (e TestReadDirEntry) Type() fs.FileMode {
+	return e.TypeVal
+}
+
+func (e TestReadDirEntry) Info() (fs.FileInfo, error) {
+	return e.InfoVal, nil
+}
 
 func methodIsMocked(m *mock.Mock) bool {
 	// Get the calling method name
@@ -196,9 +225,9 @@ func (m *MockFileSystem) ReadFileLines(filename string) ([]string, error) {
 	return fnArgs.Get(0).([]string), fnArgs.Error(1)
 }
 
-func (m *MockFileSystem) UserHomeDir() (string, error) {
-	fnArgs := m.Called()
-	return fnArgs.String(0), fnArgs.Error(1)
+func (m *MockFileSystem) ReadDirRecursive(path string, depth int, strictDepth bool) ([]common.ReadDirEntry, error) {
+	fnArgs := m.Called(path, depth, strictDepth)
+	return fnArgs.Get(0).([]common.ReadDirEntry), fnArgs.Error(1)
 }
 
 type MockGitHelper struct {
@@ -223,4 +252,14 @@ func (m *MockGitHelper) CreateIncrementalBundle(ctx context.Context, repoDir str
 func (m *MockGitHelper) CloneBareRepo(ctx context.Context, url string, destination string) error {
 	fnArgs := m.Called(ctx, url, destination)
 	return fnArgs.Error(0)
+}
+
+func (m *MockGitHelper) UpdateBareRepo(ctx context.Context, repoDir string) error {
+	fnArgs := m.Called(ctx, repoDir)
+	return fnArgs.Error(0)
+}
+
+func (m *MockGitHelper) GetRemoteUrl(ctx context.Context, repoDir string) (string, error) {
+	fnArgs := m.Called(ctx, repoDir)
+	return fnArgs.String(0), fnArgs.Error(1)
 }

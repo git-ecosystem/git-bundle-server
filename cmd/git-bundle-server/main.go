@@ -15,10 +15,12 @@ func all(logger log.TraceLogger) []argparse.Subcommand {
 	return []argparse.Subcommand{
 		NewDeleteCommand(logger, container),
 		NewInitCommand(logger, container),
+		NewRepairCommand(logger, container),
 		NewStartCommand(logger, container),
 		NewStopCommand(logger, container),
 		NewUpdateCommand(logger, container),
 		NewUpdateAllCommand(logger, container),
+		NewListCommand(logger, container),
 		NewWebServerCommand(logger, container),
 	}
 }

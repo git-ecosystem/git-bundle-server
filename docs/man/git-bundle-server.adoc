@@ -84,6 +84,27 @@ fetching during scheduled bundle updates.
 *delete* _route_::
   Remove a repository configuration and delete its data on disk.
 
+*list* [*--name-only*]::
+  List the routes registered to the bundle server. Each line in the output
+  represents a unique route and includes (in order) the route name and the Git
+  remote URL associated with that route.
+
+  *--name-only*:::
+    Print only the route name on each line.
+
+*repair* *routes* [*--start-all*] [*--dry-run*]::
+  Correct the contents of the internal route registry by comparing to bundle
+  server's internal repository storage.
+
+  *--start-all*:::
+    If any valid repositories are found that are not registered to the bundle
+    server (for example, those deactivated with *git-bundle-server stop*),
+    enable them.
+
+  *--dry-run*:::
+    Collect and report the repairs that the command will perform, but do not
+    perform them.
+
 *web-server* *start* [*-f*|*--force*] [_server-options_]::
   Start a background process web server hosting bundle metadata and content. The
   web server daemon runs under the calling user's domain, and will continue
