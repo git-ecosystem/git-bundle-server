@@ -5,7 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "e2e-test": "cucumber-js e2e -c e2e/cucumber.js"
+    "e2e-test": "cucumber-js e2e -c e2e/cucumber.js",
+    "integration-test": "cucumber-js integration -c integration/cucumber.js"
   },
   "license": "MIT",
   "devDependencies": {

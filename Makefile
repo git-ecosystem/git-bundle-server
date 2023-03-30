@@ -28,6 +28,7 @@ APPLE_APP_IDENTITY =
 APPLE_INST_IDENTITY =
 APPLE_KEYCHAIN_PROFILE =
 E2E_FLAGS=
+INTEGRATION_FLAGS=
 
 # Build targets
 .PHONY: build
@@ -42,12 +43,27 @@ doc:
 			      --output="$(DOCDIR)"
 
 # Testing targets
+.PHONY: test
+test: build
+	@echo "======== Running unit tests ========"
+	GOOS="$(GOOS)" GOARCH="$(GOARCH)" go test ./...
+
+.PHONY: integration-test
+integration-test: build
+	@echo
+	@echo "======== Running integration tests ========"
+	$(RM) -r $(TESTDIR)
+	@scripts/run-integration-tests.sh $(INTEGRATION_FLAGS)
+
 .PHONY: e2e-test
 e2e-test: build
 	@echo
 	@echo "======== Running end-to-end tests ========"
 	$(RM) -r $(TESTDIR)
 	@scripts/run-e2e-tests.sh $(E2E_FLAGS)
+
+.PHONY: test-all
+test-all: test integration-test e2e-test
 
 # Installation targets
 .PHONY: install
