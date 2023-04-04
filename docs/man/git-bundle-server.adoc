@@ -163,12 +163,12 @@ Generate an incremental bundle with latest updates to rust-lang/rust:
 $ git-bundle-server update rust-lang/rust
 ----
 
-Start an HTTPS web server on port 443 with certificate 'server.crt' and private
-key 'server.key':
+Start an HTTPS web server with mTLS authentication (given files 'ca.pem',
+'server.crt', 'server.key'):
 
 [source,console]
 ----
-$ git-bundle-server web-server start --force --port 443 --cert server.crt --key server.key
+$ git-bundle-server web-server start --force --port 443 --client-ca ca.pem --cert server.crt --key server.key
 ----
 
 == SEE ALSO

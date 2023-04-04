@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"os"
@@ -32,7 +33,8 @@ func NewBundleWebServer(logger log.TraceLogger,
 	port string,
 	certFile string, keyFile string,
 	tlsMinVersion uint16,
-) *bundleWebServer {
+	clientCAFile string,
+) (*bundleWebServer, error) {
 	bundleServer := &bundleWebServer{
 		logger:          logger,
 		serverWaitGroup: &sync.WaitGroup{},
@@ -49,7 +51,7 @@ func NewBundleWebServer(logger log.TraceLogger,
 	// No TLS configuration to be done, return
 	if certFile == "" {
 		bundleServer.listenAndServeFunc = func() error { return bundleServer.server.ListenAndServe() }
-		return bundleServer
+		return bundleServer, nil
 	}
 
 	// Configure for TLS
@@ -59,7 +61,18 @@ func NewBundleWebServer(logger log.TraceLogger,
 	bundleServer.server.TLSConfig = tlsConfig
 	bundleServer.listenAndServeFunc = func() error { return bundleServer.server.ListenAndServeTLS(certFile, keyFile) }
 
-	return bundleServer
+	if clientCAFile != "" {
+		caBytes, err := os.ReadFile(clientCAFile)
+		if err != nil {
+			return nil, err
+		}
+		certPool := x509.NewCertPool()
+		certPool.AppendCertsFromPEM(caBytes)
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		tlsConfig.ClientCAs = certPool
+	}
+
+	return bundleServer, nil
 }
 
 func (b *bundleWebServer) parseRoute(ctx context.Context, path string) (string, string, string, error) {
