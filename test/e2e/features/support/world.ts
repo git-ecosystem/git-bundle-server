@@ -1,31 +1,14 @@
-import { setWorldConstructor, World, IWorldOptions } from '@cucumber/cucumber'
-import { randomUUID } from 'crypto'
-import { RemoteRepo } from '../classes/remote'
-import * as utils from './utils'
-import * as fs from 'fs'
-import * as path from 'path'
-import { ClonedRepository } from '../classes/repository'
-import { BundleServer } from '../classes/bundleServer'
+import { setWorldConstructor, IWorldOptions } from '@cucumber/cucumber'
+import * as utils from '../../../shared/support/utils'
+import { ClonedRepository } from '../../../shared/classes/repository'
+import { BundleServerWorldBase, BundleServerParameters } from '../../../shared/support/world'
 
 export enum User {
   Me = 1,
   Another,
 }
 
-interface BundleServerParameters {
-  bundleServerCommand: string
-  bundleWebServerCommand: string
-  trashDirectoryBase: string
-}
-
-export class BundleServerWorld extends World<BundleServerParameters> {
-  // Internal variables
-  trashDirectory: string
-
-  // Bundle server
-  bundleServer: BundleServer
-  remote: RemoteRepo | undefined
-
+export class EndToEndBundleServerWorld extends BundleServerWorldBase {
   // Users
   repoMap: Map<User, ClonedRepository>
 
@@ -33,14 +16,6 @@ export class BundleServerWorld extends World<BundleServerParameters> {
     super(options)
 
     this.repoMap = new Map<User, ClonedRepository>()
-
-    // Set up the trash directory
-    this.trashDirectory = path.join(utils.absPath(this.parameters.trashDirectoryBase), randomUUID())
-    fs.mkdirSync(this.trashDirectory, { recursive: true });
-
-    // Set up the bundle server
-    this.bundleServer = new BundleServer(utils.absPath(this.parameters.bundleServerCommand),
-      utils.absPath(this.parameters.bundleWebServerCommand))
   }
 
   cloneRepositoryFor(user: User, bundleUri?: string): void {
@@ -84,13 +59,6 @@ export class BundleServerWorld extends World<BundleServerParameters> {
 
     return clonedRepo
   }
-
-  cleanup(): void {
-    this.bundleServer.cleanup()
-
-    // Delete the trash directory
-    fs.rmSync(this.trashDirectory, { recursive: true })
-  }
 }
 
-setWorldConstructor(BundleServerWorld)
+setWorldConstructor(EndToEndBundleServerWorld)

@@ -40,9 +40,9 @@
 
     // Cucumber settings
     "cucumber.features": [
-        "test/e2e/features/**/*.feature",
+        "test/**/features/**/*.feature",
     ],
     "cucumber.glue": [
-        "test/e2e/features/**/*.ts"
+        "test/**/features/**/*.ts",
     ],
 }

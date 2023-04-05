@@ -30,4 +30,4 @@ set -e
 cd "$TESTDIR"
 
 npm install
-npm run test -- ${ARGS:+${ARGS[*]}}
+npm run e2e-test -- ${ARGS:+${ARGS[*]}}
