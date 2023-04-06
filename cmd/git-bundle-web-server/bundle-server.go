@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -28,7 +29,9 @@ type bundleWebServer struct {
 }
 
 func NewBundleWebServer(logger log.TraceLogger,
-	port string, certFile string, keyFile string,
+	port string,
+	certFile string, keyFile string,
+	tlsMinVersion uint16,
 ) *bundleWebServer {
 	bundleServer := &bundleWebServer{
 		logger:          logger,
@@ -43,11 +46,18 @@ func NewBundleWebServer(logger log.TraceLogger,
 		Addr:    ":" + port,
 	}
 
-	if certFile != "" {
-		bundleServer.listenAndServeFunc = func() error { return bundleServer.server.ListenAndServeTLS(certFile, keyFile) }
-	} else {
+	// No TLS configuration to be done, return
+	if certFile == "" {
 		bundleServer.listenAndServeFunc = func() error { return bundleServer.server.ListenAndServe() }
+		return bundleServer
 	}
+
+	// Configure for TLS
+	tlsConfig := &tls.Config{
+		MinVersion: tlsMinVersion,
+	}
+	bundleServer.server.TLSConfig = tlsConfig
+	bundleServer.listenAndServeFunc = func() error { return bundleServer.server.ListenAndServeTLS(certFile, keyFile) }
 
 	return bundleServer
 }

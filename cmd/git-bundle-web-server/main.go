@@ -26,9 +26,14 @@ func main() {
 		port := utils.GetFlagValue[string](parser, "port")
 		cert := utils.GetFlagValue[string](parser, "cert")
 		key := utils.GetFlagValue[string](parser, "key")
+		tlsMinVersion := utils.GetFlagValue[uint16](parser, "tls-version")
 
 		// Configure the server
-		bundleServer := NewBundleWebServer(logger, port, cert, key)
+		bundleServer := NewBundleWebServer(logger,
+			port,
+			cert, key,
+			tlsMinVersion,
+		)
 
 		// Start the server asynchronously
 		bundleServer.StartServerAsync(ctx)

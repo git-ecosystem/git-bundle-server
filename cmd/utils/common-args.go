@@ -2,9 +2,11 @@ package utils
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // Helpers
@@ -39,11 +41,50 @@ func GetFlagValue[T any](parser argParser, name string) T {
 
 // Sets of flags shared between multiple commands/programs
 
+type tlsVersionValue uint16
+
+var tlsVersions = map[tlsVersionValue]string{
+	tls.VersionTLS11: "tlsv1.1",
+	tls.VersionTLS12: "tlsv1.2",
+	tls.VersionTLS13: "tlsv1.3",
+}
+
+func (v *tlsVersionValue) String() string {
+	if strVal, ok := tlsVersions[*v]; ok {
+		return strVal
+	} else {
+		panic(fmt.Sprintf("invalid tlsVersionValue '%d'", *v))
+	}
+}
+
+func (v *tlsVersionValue) Set(strVal string) error {
+	strLower := strings.ToLower(strVal)
+	for val, str := range tlsVersions {
+		if str == strLower {
+			*v = val
+			return nil
+		}
+	}
+
+	// add details to "invalid value for flag" message
+	validTlsVersions := []string{}
+	for _, str := range tlsVersions {
+		validTlsVersions = append(validTlsVersions, "'"+str+"'")
+	}
+	return fmt.Errorf("valid TLS versions are: %s", strings.Join(validTlsVersions, ", "))
+}
+
+func (v *tlsVersionValue) Get() any {
+	return uint16(*v)
+}
+
 func WebServerFlags(parser argParser) (*flag.FlagSet, func(context.Context)) {
 	f := flag.NewFlagSet("", flag.ContinueOnError)
 	port := f.String("port", "8080", "The port on which the server should be hosted")
 	cert := f.String("cert", "", "The path to the X.509 SSL certificate file to use in securely hosting the server")
 	key := f.String("key", "", "The path to the certificate's private key")
+	tlsVersion := tlsVersionValue(tls.VersionTLS12)
+	f.Var(&tlsVersion, "tls-version", "The minimum TLS version the server will accept")
 
 	// Function to call for additional arg validation (may exit with 'Usage()')
 	validationFunc := func(ctx context.Context) {
