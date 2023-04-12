@@ -14,6 +14,11 @@ case "$i" in
 	ARGS+=("-p" "offline")
 	shift # past argument
 	;;
+	--ci)
+	ARGS+=("-p" "ci")
+	shift # past argument
+	;;
+	*)
 	die "unknown option '$i'"
 	;;
 esac
