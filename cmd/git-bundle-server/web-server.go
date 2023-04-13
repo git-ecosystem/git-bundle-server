@@ -77,7 +77,7 @@ func (w *webServerCmd) startServer(ctx context.Context, args []string) error {
 	parser.Visit(func(f *flag.Flag) {
 		if webServerFlags.Lookup(f.Name) != nil {
 			value := f.Value.String()
-			if f.Name == "cert" || f.Name == "key" {
+			if f.Name == "cert" || f.Name == "key" || f.Name == "client-ca" {
 				// Need the absolute value of the path
 				value, err = filepath.Abs(value)
 				if err != nil {

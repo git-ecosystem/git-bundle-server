@@ -152,6 +152,11 @@ server, you can manage the web server process itself using these commands:
 Finally, if you want to run the web server process directly in your terminal,
 for debugging purposes, then you can run `git-bundle-web-server`.
 
+### Additional resources
+
+Detailed guides to more complex administration tasks or user workflows can be
+found in the [`docs/tutorials`](./docs/tutorials/) directory of this repository.
+
 ## Local development
 
 ### Building

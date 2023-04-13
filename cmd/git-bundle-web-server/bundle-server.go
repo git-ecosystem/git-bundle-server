@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"os"
@@ -28,8 +30,11 @@ type bundleWebServer struct {
 }
 
 func NewBundleWebServer(logger log.TraceLogger,
-	port string, certFile string, keyFile string,
-) *bundleWebServer {
+	port string,
+	certFile string, keyFile string,
+	tlsMinVersion uint16,
+	clientCAFile string,
+) (*bundleWebServer, error) {
 	bundleServer := &bundleWebServer{
 		logger:          logger,
 		serverWaitGroup: &sync.WaitGroup{},
@@ -43,13 +48,31 @@ func NewBundleWebServer(logger log.TraceLogger,
 		Addr:    ":" + port,
 	}
 
-	if certFile != "" {
-		bundleServer.listenAndServeFunc = func() error { return bundleServer.server.ListenAndServeTLS(certFile, keyFile) }
-	} else {
+	// No TLS configuration to be done, return
+	if certFile == "" {
 		bundleServer.listenAndServeFunc = func() error { return bundleServer.server.ListenAndServe() }
+		return bundleServer, nil
 	}
 
-	return bundleServer
+	// Configure for TLS
+	tlsConfig := &tls.Config{
+		MinVersion: tlsMinVersion,
+	}
+	bundleServer.server.TLSConfig = tlsConfig
+	bundleServer.listenAndServeFunc = func() error { return bundleServer.server.ListenAndServeTLS(certFile, keyFile) }
+
+	if clientCAFile != "" {
+		caBytes, err := os.ReadFile(clientCAFile)
+		if err != nil {
+			return nil, err
+		}
+		certPool := x509.NewCertPool()
+		certPool.AppendCertsFromPEM(caBytes)
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		tlsConfig.ClientCAs = certPool
+	}
+
+	return bundleServer, nil
 }
 
 func (b *bundleWebServer) parseRoute(ctx context.Context, path string) (string, string, string, error) {
