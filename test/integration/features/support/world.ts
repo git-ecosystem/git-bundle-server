@@ -3,6 +3,7 @@ import { RemoteRepo } from '../../../shared/classes/remote'
 import { ClonedRepository } from '../../../shared/classes/repository'
 import { BundleServerWorldBase } from '../../../shared/support/world'
 import { setWorldConstructor } from '@cucumber/cucumber'
+import { DaemonState, getLaunchDDaemonState, getSystemDDaemonState } from './daemonState'
 
 export class IntegrationBundleServerWorld extends BundleServerWorldBase {
   remote: RemoteRepo | undefined
@@ -25,6 +26,13 @@ export class IntegrationBundleServerWorld extends BundleServerWorldBase {
 
     const repoRoot = `${this.trashDirectory}/client`
     this.local = new ClonedRepository(this.remote, repoRoot)
+  }
+
+  getDaemonState(): DaemonState {
+    if (process.platform === "darwin") {
+      return getLaunchDDaemonState()
+    }
+    return getSystemDDaemonState()
   }
 }
 
