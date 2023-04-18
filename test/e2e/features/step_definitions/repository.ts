@@ -1,7 +1,7 @@
 import * as assert from 'assert'
-import * as utils from '../support/utils'
+import * as utils from '../../../shared/support/utils'
 import { randomBytes } from 'crypto'
-import { BundleServerWorld, User } from '../support/world'
+import { EndToEndBundleServerWorld, User } from '../support/world'
 import { Given, When, Then } from '@cucumber/cucumber'
 
 /**
@@ -10,7 +10,7 @@ import { Given, When, Then } from '@cucumber/cucumber'
  * test steps will live here.
  */
 
-Given('another user pushed {int} commits to {string}', async function (this: BundleServerWorld, commitNum: number, branch: string) {
+Given('another user pushed {int} commits to {string}', async function (this: EndToEndBundleServerWorld, commitNum: number, branch: string) {
   const clonedRepo = this.getRepoAtBranch(User.Another, branch)
 
   for (let i = 0; i < commitNum; i++) {
@@ -22,7 +22,7 @@ Given('another user pushed {int} commits to {string}', async function (this: Bun
 })
 
 Given('another user removed {int} commits and added {int} commits to {string}',
-  async function (this: BundleServerWorld, removeCommits: number, addCommits: number, branch: string) {
+  async function (this: EndToEndBundleServerWorld, removeCommits: number, addCommits: number, branch: string) {
     const clonedRepo = this.getRepoAtBranch(User.Another, branch)
 
     // First, reset
@@ -40,33 +40,33 @@ Given('another user removed {int} commits and added {int} commits to {string}',
   }
 )
 
-Given('I cloned from the remote repo with a bundle URI', async function (this: BundleServerWorld) {
+Given('I cloned from the remote repo with a bundle URI', async function (this: EndToEndBundleServerWorld) {
   const user = User.Me
   this.cloneRepositoryFor(user, this.bundleServer.bundleUri())
   utils.assertStatus(0, this.getRepo(user).cloneResult)
 })
 
-When('I clone from the remote repo with a bundle URI', async function (this: BundleServerWorld) {
+When('I clone from the remote repo with a bundle URI', async function (this: EndToEndBundleServerWorld) {
   this.cloneRepositoryFor(User.Me, this.bundleServer.bundleUri())
 })
 
-When('another developer clones from the remote repo without a bundle URI', async function (this: BundleServerWorld) {
+When('another developer clones from the remote repo without a bundle URI', async function (this: EndToEndBundleServerWorld) {
   this.cloneRepositoryFor(User.Another)
 })
 
-When('I fetch from the remote', async function (this: BundleServerWorld) {
+When('I fetch from the remote', async function (this: EndToEndBundleServerWorld) {
   const clonedRepo = this.getRepo(User.Me)
   utils.assertStatus(0, clonedRepo.runGit("fetch", "origin"))
 })
 
-Then('bundles are downloaded and used', async function (this: BundleServerWorld) {
+Then('bundles are downloaded and used', async function (this: EndToEndBundleServerWorld) {
   const clonedRepo = this.getRepo(User.Me)
 
   // Verify the clone executed as-expected
   utils.assertStatus(0, clonedRepo.cloneResult, "git clone failed")
 
   // Ensure warning wasn't thrown
-  clonedRepo.cloneResult.stderr.toString().split("\n").forEach(function (line) {
+  clonedRepo.cloneResult.stderr.toString().split("\n").forEach(function (line: string) {
     if (line.startsWith("warning: failed to download bundle from URI")) {
       assert.fail(line)
     }
@@ -81,13 +81,13 @@ Then('bundles are downloaded and used', async function (this: BundleServerWorld)
   result = clonedRepo.runGit("for-each-ref", "--format=%(refname)", "refs/bundles/*")
   utils.assertStatus(0, result, "git for-each-ref failed")
 
-  const bundleRefs = result.stdout.toString().split("\n").filter(function(line) {
+  const bundleRefs = result.stdout.toString().split("\n").filter(function(line: string) {
     return line.trim() != ""
   })
   assert.strict(bundleRefs.length > 0, "No bundle refs found in the repo")
 })
 
-Then('I am up-to-date with {string}', async function (this: BundleServerWorld, branch: string) {
+Then('I am up-to-date with {string}', async function (this: EndToEndBundleServerWorld, branch: string) {
   const clonedRepo = this.getRepo(User.Me)
   const result = clonedRepo.runGit("rev-parse", `refs/remotes/origin/${branch}`)
   utils.assertStatus(0, result)
@@ -97,7 +97,7 @@ Then('I am up-to-date with {string}', async function (this: BundleServerWorld, b
 })
 
 Then('my repo\'s bundles {boolean} up-to-date with {string}',
-  async function (this: BundleServerWorld, expectedUpToDate: boolean, branch: string) {
+  async function (this: EndToEndBundleServerWorld, expectedUpToDate: boolean, branch: string) {
     const clonedRepo = this.getRepo(User.Me)
     const result = clonedRepo.runGit("rev-parse", `refs/bundles/${branch}`)
     utils.assertStatus(0, result)
@@ -112,7 +112,7 @@ Then('my repo\'s bundles {boolean} up-to-date with {string}',
   }
 )
 
-Then('I compare the clone execution times', async function (this: BundleServerWorld) {
+Then('I compare the clone execution times', async function (this: EndToEndBundleServerWorld) {
   const myClone = this.getRepo(User.Me)
   const otherClone = this.getRepo(User.Another)
 

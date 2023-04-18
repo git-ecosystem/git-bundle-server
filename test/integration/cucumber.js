@@ -7,22 +7,22 @@ const common = {
     snippetInterface: 'async-await'
   },
   worldParameters: {
-    bundleServerCommand: 'bin/git-bundle-server',
-    bundleWebServerCommand: 'bin/git-bundle-web-server',
-    trashDirectoryBase: '_test/e2e'
+    bundleServerCommand: `${__dirname}/../../bin/git-bundle-server`,
+    bundleWebServerCommand: `${__dirname}/../../bin/git-bundle-web-server`,
+    trashDirectoryBase: `${__dirname}/../../_test/integration`
   }
 }
 
 module.exports = {
   default: {
     ...common,
-    tags: 'not @slow',
   },
   offline: {
     ...common,
     tags: 'not @online',
   },
-  all: {
-    ...common
-  }
+  ci: {
+    ...common,
+    tags: 'not @daemon',
+  },
 }

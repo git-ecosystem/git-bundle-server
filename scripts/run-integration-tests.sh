@@ -1,7 +1,7 @@
 #!/bin/bash
 
 THISDIR="$( cd "$(dirname "$0")" ; pwd -P )"
-TESTDIR="$THISDIR/../test/e2e"
+TESTDIR="$THISDIR/../test/integration"
 
 # Defaults
 ARGS=()
@@ -14,8 +14,8 @@ case "$i" in
 	ARGS+=("-p" "offline")
 	shift # past argument
 	;;
-	--all)
-	ARGS+=("-p" "all")
+	--ci)
+	ARGS+=("-p" "ci")
 	shift # past argument
 	;;
 	*)
@@ -30,4 +30,4 @@ set -e
 cd "$TESTDIR"
 
 npm install
-npm run e2e-test -- ${ARGS:+${ARGS[*]}}
+npm run integration-test -- ${ARGS:+${ARGS[*]}}

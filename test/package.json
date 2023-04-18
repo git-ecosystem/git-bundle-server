@@ -1,11 +1,12 @@
 {
-  "name": "e2e-test",
+  "name": "test",
   "version": "1.0.0",
   "private": true,
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "cucumber-js"
+    "e2e-test": "cucumber-js e2e -c e2e/cucumber.js",
+    "integration-test": "cucumber-js integration -c integration/cucumber.js"
   },
   "license": "MIT",
   "devDependencies": {

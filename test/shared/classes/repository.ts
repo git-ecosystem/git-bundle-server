@@ -4,9 +4,9 @@ import * as utils from '../support/utils'
 
 export class ClonedRepository {
   private initialized: boolean
-  private root: string
   private remote: RemoteRepo | undefined
 
+  root: string
   cloneResult: child_process.SpawnSyncReturns<Buffer>
   cloneTimeMs: number
 

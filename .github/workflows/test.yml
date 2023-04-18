@@ -1,4 +1,4 @@
-name: End-to-end test
+name: Integration and end-to-end tests
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
         default: false
 
 jobs:
-  e2e-test:
+  tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,11 +27,17 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install system dependencies for end-to-end tests
+      - name: Install system dependencies for tests
         run: build/ci/install-dependencies.sh
         shell: bash
 
-      - name: Enable perf tests
+      - name: Run integration tests
+        run: |
+          # Ensure only integration tests that are supported in CI are run using
+          # the --ci flag.
+          make integration-test INTEGRATION_FLAGS="--ci"
+
+      - name: Enable end-to-end perf tests
         if: ${{ github.event.inputs.run-all }}
         run: echo "E2E_FLAGS='--all'" >> $GITHUB_ENV
 
