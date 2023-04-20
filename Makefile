@@ -42,6 +42,10 @@ doc:
 	@scripts/make-docs.sh --docs="$(CURDIR)/docs/man" \
 			      --output="$(DOCDIR)"
 
+.PHONY: vet
+vet:
+	GOOS="$(GOOS)" GOARCH="$(GOARCH)" go vet ./...
+
 # Testing targets
 .PHONY: test
 test: build
