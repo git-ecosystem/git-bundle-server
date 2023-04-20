@@ -1,10 +1,11 @@
 # Default target
 build:
 
-# Project metadata (note: to package, VERSION *must* be set by the caller)
+# Project metadata
+# By default, the project version is automatically determined using
+# 'git describe'. If you would like to set the version manually, set the
+# 'VERSION' variable to the desired version string.
 NAME := git-bundle-server
-VERSION :=
-PACKAGE_REVISION := 1
 
 # Installation information
 INSTALL_ROOT := /
@@ -22,6 +23,7 @@ GOARCH := $(shell go env GOARCH)
 # Packaging information
 SUPPORTED_PACKAGE_GOARCHES := amd64 arm64
 PACKAGE_ARCH := $(GOARCH)
+PACKAGE_REVISION := 1
 
 # Guard against environment variables
 APPLE_APP_IDENTITY =
@@ -30,12 +32,29 @@ APPLE_KEYCHAIN_PROFILE =
 E2E_FLAGS=
 INTEGRATION_FLAGS=
 
+# General targets
+.PHONY: FORCE
+
+ifdef VERSION
+# If the version is set by the user, don't bother with regenerating the version
+# file.
+.PHONY: VERSION-FILE
+else
+# If the version is not set by the user, we need to generate the version file
+# and load it.
+VERSION-FILE: FORCE
+	@scripts/generate-version.sh --version-file="$@"
+-include VERSION-FILE
+endif
+
 # Build targets
+LDFLAGS += -X '$(shell go list -m)/cmd/utils.Version=$(VERSION)'
+
 .PHONY: build
 build:
 	$(RM) -r $(BINDIR)
 	@mkdir -p $(BINDIR)
-	GOOS="$(GOOS)" GOARCH="$(GOARCH)" go build -o $(BINDIR) ./...
+	GOOS="$(GOOS)" GOARCH="$(GOARCH)" go build -o $(BINDIR) -ldflags "$(LDFLAGS)" ./...
 
 .PHONY: doc
 doc:
@@ -197,6 +216,7 @@ endif
 .PHONY: clean
 clean:
 	go clean ./...
+	$(RM) -r VERSION-FILE
 	$(RM) -r $(BINDIR)
 	$(RM) -r $(DISTDIR)
 	$(RM) -r $(DOCDIR)
