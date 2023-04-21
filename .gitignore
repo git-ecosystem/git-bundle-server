@@ -1,5 +1,6 @@
 /git-bundle-server
 /git-bundle-web-server
+/VERSION-FILE
 /bin/
 /_dist/
 /_docs/

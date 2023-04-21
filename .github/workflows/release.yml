@@ -3,7 +3,8 @@ name: Release
 on:
   push:
     tags:
-      - 'v[0-9]*.[0-9]*.[0-9]*' # matches "v<number...>.<number...>.<number>..."
+      - 'v[0-9]+.[0-9]+.[0-9]+'   # matches "v<number>.<number>.<number>"
+      - 'v[0-9]+.[0-9]+.[0-9]+-*' # matches "v<number>.<number>.<number>-<string>"
 
 jobs:
    # Check prerequisites for the workflow

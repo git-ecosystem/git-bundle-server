@@ -16,19 +16,11 @@ jobs:
         with:
           go-version-file: 'src/git-bundle-server/go.mod'
 
-      # TODO: when the '-C' option is available, remove the 'cd ...'
-      # See https://github.com/golang/go/issues/50332 for more details
       - name: Build
-        run: |
-          cd $GITHUB_WORKSPACE/src/git-bundle-server
-          go build -v ./...
+        run: make -C src/git-bundle-server build
 
       - name: Check style
-        run: |
-          cd $GITHUB_WORKSPACE/src/git-bundle-server
-          go vet ./...
+        run: make -C src/git-bundle-server vet
 
       - name: Run unit tests
-        run:  |
-          cd $GITHUB_WORKSPACE/src/git-bundle-server
-          go test -v ./...
+        run: make -C src/git-bundle-server test

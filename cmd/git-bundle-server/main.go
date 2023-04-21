@@ -21,6 +21,7 @@ func all(logger log.TraceLogger) []argparse.Subcommand {
 		NewUpdateCommand(logger, container),
 		NewUpdateAllCommand(logger, container),
 		NewListCommand(logger, container),
+		NewVersionCommand(logger, container),
 		NewWebServerCommand(logger, container),
 	}
 }

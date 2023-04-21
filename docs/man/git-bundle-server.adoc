@@ -53,6 +53,9 @@ the server.
 
 == COMMANDS
 
+*version*::
+  Display the version information for the bundle server CLI
+
 *init* _url_ [_route_]::
   Initialize a repository for which bundles should be served. The repository is
   cloned into a bare repo from _url_. A base bundle is created for the
