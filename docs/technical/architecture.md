@@ -91,3 +91,159 @@ bundles][bundle-uri-fetch] according to the `creationToken` heuristic before
 fetching from the origin remote.
 
 [bundle-uri-fetch]: https://git-scm.com/docs/bundle-uri#_fetching_with_bundle_uris
+
+## Use with `git`
+
+Although the contents of the bundle server can be downloaded manually, the
+intended use case of the bundle server is to supplement clones & fetches in Git.
+
+In the following diagrams, we will be assuming use of characteristics matching
+_this_ bundle server implementation, namely the `creationToken` heuristic.
+Behavior in Git may differ if using a different server implementation.
+
+### Downloading and unpacking a bundle list
+
+The recommended use of this bundle server is as a source for a "bundle list": an
+ordered list of base and incremental bundles that, in order, can be downloaded
+and unbundled to populate the requested commits in a fetch or clone. At the core
+of the bundle URI code in both `git clone` and `git fetch` is a common process
+for downloading and unpacking the contents of a bundle list. The process is as
+follows:
+
+```mermaid
+%%{ init: { 'flowchart': { 'curve': 'monotoneX' } } }%%
+flowchart TB;
+    start{"Start"}
+    subgraph downloadAndUnbundle["Download and unbundle from list"]
+        direction TB
+
+        parse["Parse bundle list"]
+        sort["Sort bundles by creationToken,\nhigh to low, select bundle with\nhighest creationToken"]
+        creationToken{{"Current creationToken >= <code>minCreationToken</code>?"}}
+        reqBundle["Request bundle from server"]
+        downloadSuccess{{"Download successful?"}}
+        markUnbundled["Mark unbundled"]
+        markUnbundledSkip["Mark unbundled to\navoid retrying later"]
+        deeperExists{{"Are there more not-yet-unbundled bundles\nwith creationToken <i>less than</i> current?"}}
+        moveDeeper["Select next bundle with\ncreationToken less than current"]
+        unbundleReq["Unbundle downloaded bundle"]
+        shallowerExists{{"Are there more not-yet-unbundled bundles\nwith creationToken <i>greater than</i> current?"}}
+        moveShallower["Select next bundle with\ncreationToken greater than current"]
+        unbundleSuccess{{"Successfully unbundled? (not\nmissing any required commits)"}}
+    end
+    bundleServer[(Bundle Server)]
+    done{"Done"}
+
+    style downloadAndUnbundle fill:#28865477
+
+    start --> parse --> sort --> creationToken
+    creationToken ----------> |No| done
+    creationToken --> |Yes| reqBundle
+    reqBundle --> downloadSuccess
+    downloadSuccess --> |No| markUnbundledSkip
+    markUnbundledSkip --> deeperExists
+    deeperExists --> |No| done
+    deeperExists --> |Yes| moveDeeper --> creationToken
+    reqBundle <--> bundleServer
+
+    downloadSuccess --> |Yes| unbundleReq
+    unbundleReq --> unbundleSuccess
+    unbundleSuccess ----> |No| deeperExists
+    shallowerExists --> |No| done
+    unbundleSuccess --> |Yes| markUnbundled --> shallowerExists
+    shallowerExists --> |Yes| moveShallower --> unbundleReq
+
+```
+
+Note that this flow requires a `minCreationToken`: a creationToken value used to
+avoid redundant downloads of old bundles. This value depends on whether the
+algorithm is called from `git clone` or `git fetch`. Details on how this value
+is determined can be found in later sections.
+
+### `git clone`
+
+When performing an initial clone from a remote repository, the `--bundle-uri`
+option can point to a bundle list (recommended with this server) or to a single
+base bundle. In the case of a bundle list, the bundle URI will be stored along
+with a `minCreationToken` value in the repository config for subsequent fetches.
+
+```mermaid
+%%{ init: { 'flowchart': { 'curve': 'monotoneX' } } }%%
+flowchart TB;
+    user((User))
+    subgraph git
+        direction TB
+
+        setBundleUri["Set <code>bundleUri</code> to the value of --bundle-uri"]
+        downloadUri["Download from <code>bundleUri</code>"]
+        downloadType{{"What is downloaded?"}}
+        unbundle["Unbundle response"]
+        setCreationToken["Set <code>minCreationToken</code> to 0"]
+        downloadAndUnbundle(["Download and unbundle from list"])
+        bundleSuccess{{"Bundles downloaded and unpacked successfully?"}}
+        saveUri["Set fetch.bundleUri to <code>bundleUri</code>"]
+        saveCreationToken["Set fetch.bundleCreationToken to highest\nunbundled creationToken"]
+        incrementalFetch["Incremental fetch from origin"]
+
+        style downloadAndUnbundle fill:#288654,color:#000000
+    end
+    bundleServer[(Bundle Server)]
+    origin[(Remote host)]
+
+    user --> |"git clone --bundle-uri URI"| setBundleUri
+    downloadUri <--> bundleServer
+    setBundleUri --> downloadUri --> downloadType
+    downloadType --> |Single bundle| unbundle
+    unbundle --> incrementalFetch
+    downloadType --> |Other| incrementalFetch
+    downloadType --> |Bundle list| setCreationToken
+    setCreationToken --> downloadAndUnbundle --> bundleSuccess
+    bundleSuccess --> |Yes| saveUri
+    downloadAndUnbundle <---> bundleServer
+    bundleSuccess --> |No| incrementalFetch
+    saveUri --> saveCreationToken --> incrementalFetch
+    incrementalFetch <--> origin
+```
+
+### `git fetch`
+
+After successfully cloning with a bundle list URI (recommended) or manually
+setting `fetch.bundleUri`, `git fetch` will try to download and unpack recent
+bundles containing new commits.
+
+```mermaid
+%%{ init: { 'flowchart': { 'curve': 'monotoneX' } } }%%
+flowchart TB;
+    user((User))
+    subgraph git
+        direction TB
+
+        bundleUriExists{{"fetch.bundleUri config is set?"}}
+        setBundleUri["Set <code>bundleUri</code> to the value of fetch.bundleUri"]
+        creationTokenExists{{"fetch.bundleCreationToken config is set?"}}
+        setCreationToken["Set <code>minCreationToken</code> to the value\nof fetch.bundleCreationToken"]
+        setCreationTokenZero["Set <code>creationToken</code> to 0"]
+        downloadAndUnbundle(["Download and unbundle from list"])
+        bundleSuccess{{"Bundles downloaded and unpacked successfully?"}}
+        saveCreationToken["Set fetch.bundleCreationToken to highest\nunbundled creationToken"]
+        incrementalFetch["Incremental fetch from origin"]
+
+        style downloadAndUnbundle fill:#288654,color:#000000
+    end
+    bundleServer[(Bundle Server)]
+    origin[(Remote host)]
+
+    user --> |"git fetch"| bundleUriExists
+    bundleUriExists --> |Yes| setBundleUri
+    bundleUriExists --> |No| incrementalFetch
+    setBundleUri --> creationTokenExists
+    creationTokenExists --> |Yes| setCreationToken
+    creationTokenExists --> |No| setCreationTokenZero
+    setCreationToken & setCreationTokenZero --> downloadAndUnbundle
+    downloadAndUnbundle <--> bundleServer
+    downloadAndUnbundle --> bundleSuccess
+    bundleSuccess --> |Yes| saveCreationToken
+    bundleSuccess --> |No| incrementalFetch
+    saveCreationToken --> incrementalFetch
+    incrementalFetch <--> origin
+```
