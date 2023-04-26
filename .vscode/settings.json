@@ -25,6 +25,16 @@
         "editor.insertSpaces": false,
         "editor.tabSize": 8,
     },
+    "[javascript]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+    },
+    "[typescript]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+    },
     "files.associations": {
         "*.adoc": "asciidoc",
         "*.asc": "asciidoc",
@@ -32,6 +42,8 @@
         "*.sh": "shellscript",
         "prerm": "shellscript",
         "postinstall": "shellscript",
+        "*.js": "javascript",
+        "*.ts": "typescript",
         "Makefile": "makefile"
     },
 
