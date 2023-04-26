@@ -222,7 +222,7 @@ flowchart TB;
         setBundleUri["Set <code>bundleUri</code> to the value of fetch.bundleUri"]
         creationTokenExists{{"fetch.bundleCreationToken config is set?"}}
         setCreationToken["Set <code>minCreationToken</code> to the value\nof fetch.bundleCreationToken"]
-        setCreationTokenZero["Set <code>creationToken</code> to 0"]
+        setCreationTokenZero["Set <code>minCreationToken</code> to 0"]
         downloadAndUnbundle(["Download and unbundle from list"])
         bundleSuccess{{"Bundles downloaded and unpacked successfully?"}}
         saveCreationToken["Set fetch.bundleCreationToken to highest\nunbundled creationToken"]

@@ -1,32 +1,39 @@
 {
     // File formatting
+    // General settings
+    "editor.wordWrap": "off",
+    "files.trimTrailingWhitespace": true,
+
+    // Language-specific settings
     "[markdown]": {
         "editor.detectIndentation": false,
         "editor.insertSpaces": true,
         "editor.tabSize": 4,
-        "editor.wordWrap": "off",
-        "files.trimTrailingWhitespace": true,
     },
     "[makefile]": {
         "editor.detectIndentation": false,
         "editor.insertSpaces": false,
         "editor.tabSize": 8,
-        "editor.wordWrap": "off",
-        "files.trimTrailingWhitespace": true,
     },
     "[asciidoc]": {
         "editor.detectIndentation": false,
         "editor.insertSpaces": true,
         "editor.tabSize": 2,
-        "editor.wordWrap": "off",
-        "files.trimTrailingWhitespace": true,
     },
     "[shellscript]": {
         "editor.detectIndentation": false,
         "editor.insertSpaces": false,
         "editor.tabSize": 8,
-        "editor.wordWrap": "off",
-        "files.trimTrailingWhitespace": true,
+    },
+    "[javascript]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+    },
+    "[typescript]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
     },
     "files.associations": {
         "*.adoc": "asciidoc",
@@ -35,6 +42,8 @@
         "*.sh": "shellscript",
         "prerm": "shellscript",
         "postinstall": "shellscript",
+        "*.js": "javascript",
+        "*.ts": "typescript",
         "Makefile": "makefile"
     },
 
