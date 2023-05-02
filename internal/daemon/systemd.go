@@ -8,9 +8,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/github/git-bundle-server/internal/cmd"
-	"github.com/github/git-bundle-server/internal/common"
-	"github.com/github/git-bundle-server/internal/log"
+	"github.com/git-ecosystem/git-bundle-server/internal/cmd"
+	"github.com/git-ecosystem/git-bundle-server/internal/common"
+	"github.com/git-ecosystem/git-bundle-server/internal/log"
 )
 
 const serviceTemplate string = `[Unit]

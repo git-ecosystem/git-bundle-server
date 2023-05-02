@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/github/git-bundle-server/cmd/utils"
-	"github.com/github/git-bundle-server/internal/argparse"
-	"github.com/github/git-bundle-server/internal/common"
-	"github.com/github/git-bundle-server/internal/daemon"
-	"github.com/github/git-bundle-server/internal/log"
+	"github.com/git-ecosystem/git-bundle-server/cmd/utils"
+	"github.com/git-ecosystem/git-bundle-server/internal/argparse"
+	"github.com/git-ecosystem/git-bundle-server/internal/common"
+	"github.com/git-ecosystem/git-bundle-server/internal/daemon"
+	"github.com/git-ecosystem/git-bundle-server/internal/log"
 )
 
 type webServerCmd struct {

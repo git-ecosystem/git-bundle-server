@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/github/git-bundle-server/internal/bundles"
-	"github.com/github/git-bundle-server/internal/core"
-	. "github.com/github/git-bundle-server/internal/testhelpers"
+	"github.com/git-ecosystem/git-bundle-server/internal/bundles"
+	"github.com/git-ecosystem/git-bundle-server/internal/core"
+	. "github.com/git-ecosystem/git-bundle-server/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

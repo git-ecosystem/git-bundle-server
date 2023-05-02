@@ -1,6 +1,6 @@
 package testhelpers
 
-import "github.com/github/git-bundle-server/internal/utils"
+import "github.com/git-ecosystem/git-bundle-server/internal/utils"
 
 /********************************************/
 /************* Helper Functions *************/

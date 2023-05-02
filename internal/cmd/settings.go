@@ -3,7 +3,7 @@ package cmd
 import (
 	"io"
 
-	"github.com/github/git-bundle-server/internal/utils"
+	"github.com/git-ecosystem/git-bundle-server/internal/utils"
 )
 
 type settingType int

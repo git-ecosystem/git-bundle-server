@@ -9,8 +9,8 @@ import (
 	"os/user"
 	"runtime"
 
-	"github.com/github/git-bundle-server/internal/cmd"
-	"github.com/github/git-bundle-server/internal/common"
+	"github.com/git-ecosystem/git-bundle-server/internal/cmd"
+	"github.com/git-ecosystem/git-bundle-server/internal/common"
 	"github.com/stretchr/testify/mock"
 )
 

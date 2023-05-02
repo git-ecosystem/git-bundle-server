@@ -5,9 +5,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/github/git-bundle-server/internal/cmd"
-	"github.com/github/git-bundle-server/internal/git"
-	. "github.com/github/git-bundle-server/internal/testhelpers"
+	"github.com/git-ecosystem/git-bundle-server/internal/cmd"
+	"github.com/git-ecosystem/git-bundle-server/internal/git"
+	. "github.com/git-ecosystem/git-bundle-server/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

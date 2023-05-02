@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/github/git-bundle-server/internal/core"
+	"github.com/git-ecosystem/git-bundle-server/internal/core"
 	"github.com/stretchr/testify/assert"
 )
 

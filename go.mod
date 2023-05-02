@@ -1,4 +1,4 @@
-module github.com/github/git-bundle-server
+module github.com/git-ecosystem/git-bundle-server
 
 go 1.19
 

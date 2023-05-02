@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-bundle-server/internal/daemon"
-	. "github.com/github/git-bundle-server/internal/testhelpers"
+	"github.com/git-ecosystem/git-bundle-server/internal/daemon"
+	. "github.com/git-ecosystem/git-bundle-server/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/github/git-bundle-server/internal/log"
+	"github.com/git-ecosystem/git-bundle-server/internal/log"
 )
 
 type CommandExecutor interface {
