@@ -3,13 +3,13 @@ package utils
 import (
 	"context"
 
-	"github.com/github/git-bundle-server/internal/bundles"
-	"github.com/github/git-bundle-server/internal/cmd"
-	"github.com/github/git-bundle-server/internal/common"
-	"github.com/github/git-bundle-server/internal/core"
-	"github.com/github/git-bundle-server/internal/daemon"
-	"github.com/github/git-bundle-server/internal/git"
-	"github.com/github/git-bundle-server/internal/log"
+	"github.com/git-ecosystem/git-bundle-server/internal/bundles"
+	"github.com/git-ecosystem/git-bundle-server/internal/cmd"
+	"github.com/git-ecosystem/git-bundle-server/internal/common"
+	"github.com/git-ecosystem/git-bundle-server/internal/core"
+	"github.com/git-ecosystem/git-bundle-server/internal/daemon"
+	"github.com/git-ecosystem/git-bundle-server/internal/git"
+	"github.com/git-ecosystem/git-bundle-server/internal/log"
 )
 
 func BuildGitBundleServerContainer(logger log.TraceLogger) *DependencyContainer {

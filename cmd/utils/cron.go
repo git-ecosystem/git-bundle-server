@@ -3,9 +3,9 @@ package utils
 import (
 	"context"
 
-	"github.com/github/git-bundle-server/internal/common"
-	"github.com/github/git-bundle-server/internal/core"
-	"github.com/github/git-bundle-server/internal/log"
+	"github.com/git-ecosystem/git-bundle-server/internal/common"
+	"github.com/git-ecosystem/git-bundle-server/internal/core"
+	"github.com/git-ecosystem/git-bundle-server/internal/log"
 )
 
 type CronHelper interface {

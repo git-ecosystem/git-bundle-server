@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	"github.com/github/git-bundle-server/cmd/utils"
-	"github.com/github/git-bundle-server/internal/argparse"
-	"github.com/github/git-bundle-server/internal/log"
+	"github.com/git-ecosystem/git-bundle-server/cmd/utils"
+	"github.com/git-ecosystem/git-bundle-server/internal/argparse"
+	"github.com/git-ecosystem/git-bundle-server/internal/log"
 )
 
 func all(logger log.TraceLogger) []argparse.Subcommand {

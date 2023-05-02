@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/github/git-bundle-server/internal/log"
+	"github.com/git-ecosystem/git-bundle-server/internal/log"
 )
 
 // For consistency with 'flag', use 2 as the usage-related error code

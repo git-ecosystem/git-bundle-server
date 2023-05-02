@@ -1,6 +1,6 @@
 # Support
 
-[discussion]: https://github.com/github/git-bundle-server/discussions
+[discussion]: https://github.com/git-ecosystem/git-bundle-server/discussions
 
 ## How to file issues and get help
 
@@ -14,7 +14,3 @@ For help or questions about using this project, please start a
 - `git-bundle-server` is under active development and maintained by GitHub
 staff **AND THE COMMUNITY**. We will do our best to respond to support, feature
 requests, and community questions in a timely manner.
-
-## GitHub Support Policy
-
-Support for this project is limited to the resources listed above.

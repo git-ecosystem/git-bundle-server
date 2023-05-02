@@ -3,7 +3,7 @@ package utils_test
 import (
 	"testing"
 
-	"github.com/github/git-bundle-server/internal/utils"
+	"github.com/git-ecosystem/git-bundle-server/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 

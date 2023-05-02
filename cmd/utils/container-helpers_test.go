@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/github/git-bundle-server/cmd/utils"
-	. "github.com/github/git-bundle-server/internal/testhelpers"
-	typeutils "github.com/github/git-bundle-server/internal/utils"
+	"github.com/git-ecosystem/git-bundle-server/cmd/utils"
+	. "github.com/git-ecosystem/git-bundle-server/internal/testhelpers"
+	typeutils "github.com/git-ecosystem/git-bundle-server/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 

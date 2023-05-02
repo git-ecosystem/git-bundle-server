@@ -1,7 +1,7 @@
 package daemon_test
 
 import (
-	"github.com/github/git-bundle-server/internal/daemon"
+	"github.com/git-ecosystem/git-bundle-server/internal/daemon"
 )
 
 /*********************************************/

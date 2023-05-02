@@ -8,7 +8,7 @@ die () {
 THISDIR="$( cd "$(dirname "$0")" ; pwd -P )"
 
 # Product information
-IDENTIFIER="com.github.gitbundleserver"
+IDENTIFIER="com.git-ecosystem.gitbundleserver"
 INSTALL_LOCATION="/usr/local/git-bundle-server"
 
 # Defaults
