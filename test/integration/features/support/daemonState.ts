@@ -10,7 +10,7 @@ export function getLaunchDDaemonState(): DaemonState {
 
   var user = child_process.spawnSync('id', ['-u']).stdout.toString().trim()
   var cmdResult = child_process.spawnSync('launchctl',
-    ['print', `user/${user}/com.github.gitbundleserver`])
+    ['print', `user/${user}/com.git-ecosystem.gitbundleserver`])
 
   var state = parseOutput(cmdResult.stdout.toString(), regex)
 
@@ -31,7 +31,7 @@ export function getSystemDDaemonState(): DaemonState {
 
   var user = child_process.spawnSync('id', ['-u']).stdout.toString()
   var cmdResult = child_process.spawnSync('systemctl',
-      ['status', '--user', user, 'com.github.gitbundleserver'])
+      ['status', '--user', user, 'com.git-ecosystem.gitbundleserver'])
 
   var state = parseOutput(cmdResult.stdout.toString(), regex)
 

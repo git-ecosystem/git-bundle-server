@@ -57,7 +57,7 @@ else
 fi
 
 # If installed via MacOS .pkg, remove package receipt
-PKG_ID=com.github.gitbundleserver
+PKG_ID=com.git-ecosystem.gitbundleserver
 if command -v pkgutil >/dev/null 2>&1 && pkgutil --pkgs=$PKG_ID >/dev/null 2>&1
 then
 	# Must run as root
