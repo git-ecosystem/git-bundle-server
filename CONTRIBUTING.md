@@ -2,7 +2,7 @@
 
 [code-of-conduct]: CODE_OF_CONDUCT.md
 [commit-guidance]: https://github.blog/2022-06-30-write-better-commits-build-better-projects/
-[compare]: https://github.com/github/git-bundle-server/compare
+[compare]: https://github.com/git-ecosystem/git-bundle-server/compare
 [contributions-under-license]: https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license
 [github-help]: https://help.github.com
 [license]: LICENSE

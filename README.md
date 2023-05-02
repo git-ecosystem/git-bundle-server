@@ -1,6 +1,6 @@
 # Git Bundle Server
 
-[bundle-uris]: https://github.com/git/git/blob/next/Documentation/technical/bundle-uri.txt
+[bundle-uris]: https://git-scm.com/docs/bundle-uri
 [codeowners]: CODEOWNERS
 [contributing]: CONTRIBUTING.md
 [license]: LICENSE
@@ -22,7 +22,7 @@ started.
 > :warning: Installation on Windows is currently unsupported :warning:
 
 <!-- Common sources -->
-[releases]: https://github.com/github/git-bundle-server/releases
+[releases]: https://github.com/git-ecosystem/git-bundle-server/releases
 
 #### Linux
 
