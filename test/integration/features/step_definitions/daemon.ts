@@ -26,10 +26,3 @@ Then('the daemon is not running', async function (this: IntegrationBundleServerW
   var daemonStatus = this.getDaemonState()
   assert.strictEqual(daemonStatus, DaemonState.NotRunning)
 })
-
-// After({tags: '@daemon'}, async function (this: IntegrationBundleServerWorld) {
-//   var daemonState = this.getDaemonState()
-//   if (daemonState === DaemonState.Running) {
-//     this.runCommand('git-bundle-server web-server stop')
-//   }
-// });

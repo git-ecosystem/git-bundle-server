@@ -42,7 +42,7 @@ func (w *webServerCmd) getDaemonConfig(ctx context.Context) (*daemon.DaemonConfi
 	}
 
 	return &daemon.DaemonConfig{
-		Label:       "com.github.gitbundleserver",
+		Label:       "com.git-ecosystem.gitbundleserver",
 		Description: "Web server hosting Git Bundle Server content",
 		Program:     programPath,
 	}, nil
