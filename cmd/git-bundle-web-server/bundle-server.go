@@ -20,13 +20,17 @@ import (
 	"github.com/git-ecosystem/git-bundle-server/internal/core"
 	"github.com/git-ecosystem/git-bundle-server/internal/git"
 	"github.com/git-ecosystem/git-bundle-server/internal/log"
+	"github.com/git-ecosystem/git-bundle-server/pkg/auth"
 )
+
+type authFunc func(*http.Request, string, string) auth.AuthResult
 
 type bundleWebServer struct {
 	logger             log.TraceLogger
 	server             *http.Server
 	serverWaitGroup    *sync.WaitGroup
 	listenAndServeFunc func() error
+	authorize          authFunc
 }
 
 func NewBundleWebServer(logger log.TraceLogger,
@@ -34,10 +38,12 @@ func NewBundleWebServer(logger log.TraceLogger,
 	certFile string, keyFile string,
 	tlsMinVersion uint16,
 	clientCAFile string,
+	middlewareAuthorize authFunc,
 ) (*bundleWebServer, error) {
 	bundleServer := &bundleWebServer{
 		logger:          logger,
 		serverWaitGroup: &sync.WaitGroup{},
+		authorize:       middlewareAuthorize,
 	}
 
 	// Configure the http.Server
@@ -106,6 +112,13 @@ func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	route := owner + "/" + repo
+
+	if b.authorize != nil {
+		authResult := b.authorize(r, owner, repo)
+		if authResult.ApplyResult(w) {
+			return
+		}
+	}
 
 	userProvider := common.NewUserProvider()
 	fileSystem := common.NewFileSystem()

@@ -29,12 +29,16 @@ func main() {
 		tlsMinVersion := utils.GetFlagValue[uint16](parser, "tls-version")
 		clientCA := utils.GetFlagValue[string](parser, "client-ca")
 
+		// Configure auth
+		middlewareAuthorize := authFunc(nil)
+
 		// Configure the server
 		bundleServer, err := NewBundleWebServer(logger,
 			port,
 			cert, key,
 			tlsMinVersion,
 			clientCA,
+			middlewareAuthorize,
 		)
 		if err != nil {
 			logger.Fatal(ctx, err)
