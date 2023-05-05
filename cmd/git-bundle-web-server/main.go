@@ -10,6 +10,7 @@ import (
 
 	"github.com/git-ecosystem/git-bundle-server/cmd/utils"
 	"github.com/git-ecosystem/git-bundle-server/internal/argparse"
+	auth_internal "github.com/git-ecosystem/git-bundle-server/internal/auth"
 	"github.com/git-ecosystem/git-bundle-server/internal/log"
 	"github.com/git-ecosystem/git-bundle-server/pkg/auth"
 )
@@ -27,6 +28,8 @@ func parseAuthConfig(configPath string) (auth.AuthMiddleware, error) {
 	}
 
 	switch strings.ToLower(config.AuthMode) {
+	case "fixed":
+		return auth_internal.NewFixedCredentialAuth(config.Parameters)
 	default:
 		return nil, fmt.Errorf("unrecognized auth mode '%s'", config.AuthMode)
 	}

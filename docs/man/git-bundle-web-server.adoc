@@ -40,10 +40,30 @@ The auth config JSON contains the following fields:
 
 *mode* (string)::
   The auth mode to use. Not case-sensitive.
++
+Available options:
+
+  - _fixed_
 
 *parameters* (object)::
   A structure containing mode-specific key-value configuration fields, if
   applicable. May be optional, depending on *mode*.
+
+=== Examples
+
+Static, server-wide username & password ("admin" & "bundle_server",
+respectively):
+
+[source,json]
+----
+{
+  "mode": "fixed",
+  "parameters": {
+    "username": "admin",
+    "passwordHash": "c3c3520adf2f6e25672ba55dc70bcb3dd8b4ef3341bce1a5f38c5eca6571f372"
+  }
+}
+----
 
 == SEE ALSO
 
