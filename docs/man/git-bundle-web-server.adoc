@@ -27,6 +27,24 @@ web-server* for managing the web server process on their systems.
 
 include::server-options.asc[]
 
+== CONFIGURING AUTH
+
+The *--auth-config* option configures authentication middleware for the server,
+either using a built-in mode or with a custom plugin. The auth config specified
+by that option is a JSON file that identifies the type of access control
+requested and information needed to configure it.
+
+=== Schema
+
+The auth config JSON contains the following fields:
+
+*mode* (string)::
+  The auth mode to use. Not case-sensitive.
+
+*parameters* (object)::
+  A structure containing mode-specific key-value configuration fields, if
+  applicable. May be optional, depending on *mode*.
+
 == SEE ALSO
 
 man:git-bundle-server[1], man:git-bundle[1], man:git-fetch[1]
