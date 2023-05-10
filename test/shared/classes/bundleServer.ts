@@ -21,11 +21,15 @@ export class BundleServer {
     this.bundleWebServerCmd = bundleWebServerCmd
   }
 
-  async startWebServer(port: number): Promise<void> {
+  async startWebServer(port: number, authConfig: string = ""): Promise<void> {
     if (this.webServerProcess) {
       throw new Error("Tried to start web server, but web server is already running")
     }
-    const webServerProcess = child_process.spawn(this.bundleWebServerCmd, ["--port", String(port)])
+    let args = ["--port", String(port)]
+    if (authConfig !== "") {
+      args = args.concat(["--auth-config", authConfig])
+    }
+    const webServerProcess = child_process.spawn(this.bundleWebServerCmd, args)
     this.webServerProcess = webServerProcess
     this.bundleUriBase = `http://localhost:${port}/`
 
