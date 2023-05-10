@@ -185,6 +185,16 @@ func (b *bundleWebServer) StartServerAsync(ctx context.Context) {
 		}
 	}(ctx)
 
+	// Wait 0.1s before reporting that the server is started in case
+	// 'listenAndServeFunc' exits immediately.
+	//
+	// It's a hack, but a necessary one because 'ListenAndServe[TLS]()' doesn't
+	// have any mechanism of notifying if it starts successfully, only that it
+	// fails. We could get around that by copying/reimplementing those functions
+	// with a print statement inserted at the right place, but that's way more
+	// cumbersome than just adding a delay here (see:
+	// https://stackoverflow.com/questions/53332667/how-to-notify-when-http-server-starts-successfully).
+	time.Sleep(time.Millisecond * 100)
 	fmt.Println("Server is running at address " + b.server.Addr)
 }
 

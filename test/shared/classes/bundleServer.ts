@@ -21,12 +21,38 @@ export class BundleServer {
     this.bundleWebServerCmd = bundleWebServerCmd
   }
 
-  startWebServer(port: number): void {
+  async startWebServer(port: number): Promise<void> {
     if (this.webServerProcess) {
       throw new Error("Tried to start web server, but web server is already running")
     }
-    this.webServerProcess = child_process.spawn(this.bundleWebServerCmd, ["--port", String(port)])
+    const webServerProcess = child_process.spawn(this.bundleWebServerCmd, ["--port", String(port)])
+    this.webServerProcess = webServerProcess
     this.bundleUriBase = `http://localhost:${port}/`
+
+    // Now, ensure the server is running
+    var timer: NodeJS.Timeout | undefined
+    var ok: boolean | undefined
+
+    await Promise.race([
+      new Promise<void>(resolve => webServerProcess.stdout.on('data', (data: string) => {
+        if (data.includes("Server is running at address") && ok === undefined) {
+          ok = true
+          resolve() // server is running
+        }
+      })),
+      new Promise<void>(resolve => webServerProcess.on('close', () => {
+        ok = false
+        resolve() // program failed to start/exited early
+      })),
+      new Promise(resolve => timer = setTimeout(resolve, 2000)) // fallback timeout
+    ])
+
+    // If it's still running, clear the timeout so it doesn't delay shutdown
+    clearTimeout(timer)
+
+    if (!ok) {
+      throw new Error('Failed to start web server')
+    }
   }
 
   init(remote: RemoteRepo, routePrefix: string, route: string = ""): child_process.SpawnSyncReturns<Buffer> {
