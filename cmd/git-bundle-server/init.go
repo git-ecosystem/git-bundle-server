@@ -53,6 +53,18 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 	bundleProvider := utils.GetDependency[bundles.BundleProvider](ctx, i.container)
 	gitHelper := utils.GetDependency[git.GitHelper](ctx, i.container)
 
+	// First, check whether route already exists (enabled or not). If it does,
+	// exit with an error.
+	allRepos, err := repoProvider.ReadRepositoryStorage(ctx)
+	if err != nil {
+		return i.logger.Errorf(ctx, "could not load existing routes: %w", err)
+	} else if _, ok := allRepos[*route]; ok {
+		return i.logger.Errorf(ctx, "route '%s' already exists; if you want to "+
+			"overwrite the route, delete it with 'git-bundle-server delete' "+
+			"then re-run this command", *route)
+	}
+
+	// Create the new route
 	repo, err := repoProvider.CreateRepository(ctx, *route)
 	if err != nil {
 		return i.logger.Error(ctx, err)
