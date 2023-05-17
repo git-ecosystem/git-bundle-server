@@ -215,7 +215,13 @@ func (f *fileSystem) ReadDirRecursive(path string, depth int, strictDepth bool) 
 
 	dirEntries, err := os.ReadDir(path)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, os.ErrNotExist) {
+			// We tried to read the directory, but it doesn't exist - return
+			// empty result.
+			return []ReadDirEntry{}, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	entries := utils.Map(dirEntries, mapDirEntry(path))
