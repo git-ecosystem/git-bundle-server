@@ -59,7 +59,10 @@ func (i *initCmd) Run(ctx context.Context, args []string) error {
 	}
 
 	fmt.Printf("Cloning repository from %s\n", *url)
-	gitHelper.CloneBareRepo(ctx, *url, repo.RepoDir)
+	err = gitHelper.CloneBareRepo(ctx, *url, repo.RepoDir)
+	if err != nil {
+		return i.logger.Errorf(ctx, "failed to clone repository: %w", err)
+	}
 
 	bundle := bundleProvider.CreateInitialBundle(ctx, repo)
 	fmt.Printf("Constructing base bundle file at %s\n", bundle.Filename)
