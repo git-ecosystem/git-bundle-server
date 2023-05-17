@@ -10,6 +10,7 @@ export class IntegrationBundleServerWorld extends BundleServerWorldBase {
   local: ClonedRepository | undefined
 
   commandResult: child_process.SpawnSyncReturns<Buffer> | undefined
+  requestResponse: Response | undefined
 
   runCommand(commandArgs: string): void {
     this.commandResult = child_process.spawnSync(`${this.parameters.bundleServerCommand} ${commandArgs}`, [], { shell: true })

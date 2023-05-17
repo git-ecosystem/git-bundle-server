@@ -86,6 +86,7 @@ func WebServerFlags(parser argParser) (*flag.FlagSet, func(context.Context)) {
 	tlsVersion := tlsVersionValue(tls.VersionTLS12)
 	f.Var(&tlsVersion, "tls-version", "The minimum TLS version the server will accept")
 	f.String("client-ca", "", "The path to the client authentication certificate authority PEM")
+	f.String("auth-config", "", "File containing the configuration for server auth middleware")
 
 	// Function to call for additional arg validation (may exit with 'Usage()')
 	validationFunc := func(ctx context.Context) {

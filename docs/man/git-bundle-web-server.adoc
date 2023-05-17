@@ -27,6 +27,93 @@ web-server* for managing the web server process on their systems.
 
 include::server-options.asc[]
 
+== CONFIGURING AUTH
+
+The *--auth-config* option configures authentication middleware for the server,
+either using a built-in mode or with a custom plugin. The auth config specified
+by that option is a JSON file that identifies the type of access control
+requested and information needed to configure it.
+
+=== Schema
+
+The auth config JSON contains the following fields:
+
+*mode* (string)::
+  The auth mode to use. Not case-sensitive.
++
+Available options:
+
+  - _fixed_
+
+*parameters* (object)::
+  A structure containing mode-specific key-value configuration fields, if
+  applicable. May be optional, depending on *mode*.
+
+*path* (string) - *plugin*-only::
+  The absolute path to the auth plugin .so file.
+
+*initializer* (string) - *plugin*-only::
+  The name of the symbol within the plugin binary that can invoked to create an
+  'AuthMiddleware' instance. The initializer:
+
+  - Must have the signature 'func(json.RawMessage) (AuthMiddleware, error)'.
+  - Must be exported in its package (i.e., UpperCamelCase name).
+
+*sha256* (string) - *plugin*-only::
+  The SHA256 checksum of the plugin .so file, rendered as a hex string. If the
+  checksum does not match the calculated checksum of the plugin file, the web
+  server will refuse to start.
++
+The checksum can be determined using man:shasum[1]:
++
+[source,console]
+----
+$ shasum -a 256 /path/to/your/plugin.so
+----
+
+=== Examples
+
+The following examples demonstrate typical usage of built-in and plugin modes.
+
+***
+
+Static, server-wide username & password ("admin" & "bundle_server",
+respectively):
+
+[source,json]
+----
+{
+  "mode": "fixed",
+  "parameters": {
+    "username": "admin",
+    "passwordHash": "c3c3520adf2f6e25672ba55dc70bcb3dd8b4ef3341bce1a5f38c5eca6571f372"
+  }
+}
+----
+
+***
+
+A custom auth plugin implementation:
+
+  - The path to the Go plugin file is '/path/to/plugin.so'
+  - The file contains the symbol
+    'func NewSimplePluginAuth(rawParams json.RawMessage) (AuthMiddleware, error)'
+  - The initializer ignores 'rawParams'
+  - The SHA256 checksum of '/path/to/plugin.so' is
+    '49db14bb838417a0292e293d0a6e90e82ed26fccb0d78670827c8c8516d2cca6'
+
+[source,json]
+----
+{
+  "mode": "plugin",
+  "path": "/path/to/plugin.so",
+  "initializer": "NewSimplePluginAuth",
+  "sha256": "49db14bb838417a0292e293d0a6e90e82ed26fccb0d78670827c8c8516d2cca6"
+}
+----
+
+***
+
 == SEE ALSO
 
 man:git-bundle-server[1], man:git-bundle[1], man:git-fetch[1]

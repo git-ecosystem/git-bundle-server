@@ -1,0 +1,6 @@
+{
+    "mode": "plugin",
+    "path": "examples/auth/_plugins/simple-plugin.so",
+    "initializer": "NewSimplePluginAuth",
+    "sha256": "<plugin SHA256 checksum>"
+}

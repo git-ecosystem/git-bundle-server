@@ -1,6 +1,6 @@
 import * as assert from 'assert'
 import { IntegrationBundleServerWorld } from '../support/world'
-import { Given, Then } from '@cucumber/cucumber'
+import { Given, When, Then } from '@cucumber/cucumber'
 import * as utils from '../../../shared/support/utils'
 import * as fs from 'fs'
 
@@ -17,6 +17,27 @@ Given('no bundle server repository exists at route {string}', async function (th
     throw new Error(`Repo already exists at ${repoPath}`)
   }
 })
+
+When('I request the bundle list', async function (this: IntegrationBundleServerWorld) {
+  this.requestResponse = await fetch(this.bundleServer.bundleUri(), {
+    method: 'GET',
+    headers: {
+      Accept: 'text/plain',
+    },
+  });
+})
+
+When('I request the bundle list with username {string} and password {string}',
+  async function (this: IntegrationBundleServerWorld, user: string, pass: string) {
+    this.requestResponse = await fetch(this.bundleServer.bundleUri(), {
+      method: 'GET',
+      headers: {
+        Accept: 'text/plain',
+        Authorization: 'Basic ' + Buffer.from(`${user}:${pass}`, 'utf8').toString('base64')
+      },
+    });
+  }
+)
 
 Then('a bundle server repository exists at route {string}', async function (this: IntegrationBundleServerWorld, route: string) {
   var repoRoot = utils.repoRoot(route)
@@ -70,4 +91,29 @@ Then('the route exists in the routes file', async function (this: IntegrationBun
   } else {
     throw new Error("Route not set")
   }
+})
+
+Then('the response code is {int}', async function (this: IntegrationBundleServerWorld, code: number) {
+  if (!this.requestResponse) {
+    throw new Error("Request response not set")
+  }
+  assert.strictEqual(this.requestResponse.status, code)
+})
+
+Then('the response is a valid bundle list', async function (this: IntegrationBundleServerWorld) {
+  if (!this.requestResponse) {
+    throw new Error("Request response not set")
+  }
+
+  const data = await this.requestResponse.text()
+  assert.notStrictEqual(data, "")
+})
+
+Then('the response is empty', async function (this: IntegrationBundleServerWorld) {
+  if (!this.requestResponse) {
+    throw new Error("Request response not set")
+  }
+
+  const data = await this.requestResponse.text()
+  assert.strictEqual(data, "")
 })

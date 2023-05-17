@@ -6,3 +6,5 @@
 /_docs/
 /_test/
 node_modules/
+
+*.so
