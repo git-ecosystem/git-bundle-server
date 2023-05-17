@@ -81,7 +81,7 @@ Section: vcs
 Priority: optional
 Architecture: $ARCH
 Depends:
-Maintainer: Git Bundle Server <gitfundamentals@github.com>
+Maintainer: Git Bundle Server <git-fundamentals@github.com>
 Description: A self-hostable Git bundle server.
 EOF
 
