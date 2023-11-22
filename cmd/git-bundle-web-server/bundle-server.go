@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -81,22 +80,6 @@ func NewBundleWebServer(logger log.TraceLogger,
 	return bundleServer, nil
 }
 
-func (b *bundleWebServer) parseRoute(ctx context.Context, path string) (string, string, string, error) {
-	elements := strings.FieldsFunc(path, func(char rune) bool { return char == '/' })
-	switch len(elements) {
-	case 0:
-		return "", "", "", fmt.Errorf("empty route")
-	case 1:
-		return "", "", "", fmt.Errorf("route has owner, but no repo")
-	case 2:
-		return elements[0], elements[1], "", nil
-	case 3:
-		return elements[0], elements[1], elements[2], nil
-	default:
-		return "", "", "", fmt.Errorf("path has depth exceeding three")
-	}
-}
-
 func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -104,7 +87,7 @@ func (b *bundleWebServer) serve(w http.ResponseWriter, r *http.Request) {
 	defer exitRegion()
 
 	path := r.URL.Path
-	owner, repo, filename, err := b.parseRoute(ctx, path)
+	owner, repo, filename, err := core.ParseRoute(path, false)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Printf("Failed to parse route: %s\n", err)

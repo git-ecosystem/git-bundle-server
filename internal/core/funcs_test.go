@@ -120,3 +120,116 @@ func TestGetRouteFromUrl(t *testing.T) {
 		})
 	}
 }
+
+var parseRouteTests = []struct {
+	route         string
+	repoOnly      bool
+	expectedOwner string
+	expectedRepo  string
+	expectedFile  string
+	expectedError bool
+}{
+	// Valid routes
+	{
+		"test/repo/1.bundle",
+		false,
+		"test", "repo", "1.bundle",
+		false,
+	},
+	{
+		"test/repo",
+		false,
+		"test", "repo", "",
+		false,
+	},
+	{
+		"test_with_undercore/repo-with-dash",
+		false,
+		"test_with_undercore", "repo-with-dash", "",
+		false,
+	},
+	{
+		"//lots/of////path_separators...bundle//",
+		false,
+		"lots", "of", "path_separators...bundle",
+		false,
+	},
+	{
+		"test/repo",
+		true,
+		"test", "repo", "",
+		false,
+	},
+
+	// Invalid routes
+	{
+		"",
+		false,
+		"", "", "",
+		true,
+	},
+	{
+		"//",
+		false,
+		"", "", "",
+		true,
+	},
+	{
+		"too-short",
+		false,
+		"", "", "",
+		true,
+	},
+	{
+		"much/much/MUCH/too/long",
+		false,
+		"", "", "",
+		true,
+	},
+	{
+		"test/repo with spaces",
+		false,
+		"", "", "",
+		true,
+	},
+	{
+		"test/./repo",
+		true,
+		"", "", "",
+		true,
+	},
+	{
+		"../test/repo",
+		true,
+		"", "", "",
+		true,
+	},
+	{
+		"test/repo/1.bundle",
+		true,
+		"", "", "",
+		true,
+	},
+}
+
+func TestParseRoute(t *testing.T) {
+	for _, tt := range parseRouteTests {
+		title := tt.route
+		if tt.repoOnly {
+			title += " (repo only)"
+		}
+
+		t.Run(title, func(t *testing.T) {
+			owner, repo, file, err := core.ParseRoute(tt.route, tt.repoOnly)
+
+			if tt.expectedError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.expectedOwner, owner)
+				assert.Equal(t, tt.expectedRepo, repo)
+				assert.Equal(t, tt.expectedFile, file)
+			}
+		})
+	}
+}
