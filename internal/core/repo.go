@@ -50,6 +50,12 @@ func (r *repoProvider) CreateRepository(ctx context.Context, route string) (*Rep
 	ctx, exitRegion := r.logger.Region(ctx, "repo", "create_repo")
 	defer exitRegion()
 
+	ownerName, repoName, _, err := ParseRoute(route, true)
+	if err != nil {
+		return nil, err
+	}
+	route = ownerName + "/" + repoName
+
 	user, err := r.user.CurrentUser()
 	if err != nil {
 		return nil, err
@@ -92,6 +98,12 @@ func (r *repoProvider) CreateRepository(ctx context.Context, route string) (*Rep
 func (r *repoProvider) RemoveRoute(ctx context.Context, route string) error {
 	ctx, exitRegion := r.logger.Region(ctx, "repo", "remove_route")
 	defer exitRegion()
+
+	ownerName, repoName, _, err := ParseRoute(route, true)
+	if err != nil {
+		return err
+	}
+	route = ownerName + "/" + repoName
 
 	repos, err := r.GetRepositories(ctx)
 	if err != nil {
